@@ -116,12 +116,13 @@ class NERSet(Dataset):
     def __getitem__(self, i):
         if self.FOR_TRAIN:
             sample, labels = self.samples[i]
+            labels = labels[:self.max_length-2]
             label_length = len(labels) + 2
         else:
             sample = self.samples[i]
 
         sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
-                                                     max_length=self.max_length,
+                                                     max_length=self.max_length, truncation=True,
                                                      return_attention_mask=True)
 
         if self.FOR_TRAIN:
