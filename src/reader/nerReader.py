@@ -3,7 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AlbertTokenizer, BertTokenizer
 import os, re
 from utils.utils import *
-
+from loguru import logger
 
 class NERSet(Dataset):
     ''' 天池中医药NER任务：
@@ -23,6 +23,7 @@ class NERSet(Dataset):
             args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.tokenizer.strip_accents = False
 
+        logger.info(f'begin reading {MODE}')
         self.samples = self._load_train_data() if FOR_TRAIN else self._load_eval_data()
 
     def _load_train_data(self):
