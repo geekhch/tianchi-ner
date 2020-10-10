@@ -1,3 +1,6 @@
+import os
+from os.path import join
+
 import torch
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -6,13 +9,15 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import set_seed
 
-from utils.args import get_parser
+from utils.args import get_parser, VersionConfig
 from utils.optim import get_linear_schedule_with_warmup
 from model.models import BertNER
 from reader.nerReader import NERSet
 
 args = get_parser()
-
+VERSION_CONFIG = VersionConfig(
+    max_seq_length=args.max_seq_length
+)
 
 def main():
     writer = SummaryWriter(args.log_dir)
@@ -35,6 +40,9 @@ def main():
                        {'params': model.emission_ffn.parameters()},
                        {'params': model.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
 
+    scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
+
+
     global_step = 0
     for epoch in range(args.max_epochs):
         with tqdm(total=len(trainloader)) as t:
@@ -51,10 +59,20 @@ def main():
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                scheduler.step()
 
-                writer.add_scalar('crf-loss', loss, global_step=global_step)
-                t.set_postfix(loss=loss)
+                writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
+                t.set_postfix(loss=loss.item())
                 t.update(1)
+
+                if global_step % args.save_steps == 0:
+                    save_dir = join(args.output_dir, f'step_{global_step}')
+                    if not os.path.exists(save_dir):
+                        os.makedirs(save_dir)
+                    torch.save(model, join(save_dir, 'model.pth'))
+                    VERSION_CONFIG.dump(save_dir)
+
+
 
 if __name__ == '__main__':
     main()

@@ -74,19 +74,10 @@ class VersionConfig:
     7. 属性可以扩展，并兼容旧版不完整属性
     '''
 
-    def __init__(self, sim_text_version: str = None,
-                 sim_model_version=None,
-                 nil_model_version=None,
-                 sim_loss_func=None,
-                 k_folds_info: str = None,
+    def __init__(self,
                  max_seq_length=256
                  ):
-        self.sim_text_version = sim_text_version
-        self.sim_model_version = sim_model_version
-        self.nil_model_version = nil_model_version
-        self.sim_loss_func = sim_loss_func
         self.max_seq_length = max_seq_length
-        self.k_folds_info = k_folds_info  # 用于记录数据信息，不影响模型预测，形式为'1/3', 表示使用3folds中的第一叠数据训练。
 
     def load(self, cfg_dir):
         cfg_path = join(cfg_dir, 'version_config.json')
