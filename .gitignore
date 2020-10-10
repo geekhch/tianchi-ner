@@ -1,0 +1,7 @@
+data
+**/log
+output
+**/__pycache__
+
+.idea
+.vscode
