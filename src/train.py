@@ -62,7 +62,7 @@ def main():
                             model_inputs[k] = v.cuda()
 
                 global_step += 1
-                loss = model(model_inputs)
+                loss, tag_acc = model(model_inputs)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -70,7 +70,8 @@ def main():
                 scheduler.step()
 
                 writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
-                t.set_postfix(loss=loss.item())
+                writer.add_scalar('tag-acc', tag_acc, global_step=global_step)
+                t.set_postfix(loss=loss.item(), tag_acc=tag_acc)
                 t.update(1)
 
                 if global_step % args.save_steps == 0:

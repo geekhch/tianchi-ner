@@ -27,15 +27,28 @@ class BertNER(nn.Module):
 
         if label_names is None:
             viterbi_path = self.crf.viterbi_tags(emission, inputs['attention_mask'])
-            return viterbi_path
+            tag_paths = []
+            for i in range(emission.shape[0]):
+                tag_paths.append([ID2LABEL[idx] for idx in viterbi_path[i]])
+            return tag_paths
         else:
-            label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names])
+            label_ids = [[LABEL2ID[l_name] for l_name in line] for line in label_names]
+            tag_acc = self.eval_segment_acc(emission, inputs['attention_mask'], label_ids)
+
+            label_ids = torch.tensor(label_ids)
             if self.USE_CUDA:
                 label_ids = label_ids.cuda()
             log_like_hood = self.crf(emission, label_ids, inputs['attention_mask'])
             log_like_hood /= batch_size
-            return -log_like_hood
+            return -log_like_hood, tag_acc
 
-    def eval_segment_acc(self, emission, mask):
-        viterbi_path = self.crf.viterbi_tags(emission, inputs['attention_mask'])
+    def eval_segment_acc(self, emission, mask, label_ids):
+        viterbi_decode = self.crf.viterbi_tags(emission, mask)
+        viterbi_paths = [d[0] for d in viterbi_decode]
+        tot, tp = 0., 0.
+        for i, path in enumerate(viterbi_paths):
+            for j, tag_id in enumerate(path):
+                tot += 1
+                tp += tag_id == label_ids[i][j]
+        return tp / tot
         
