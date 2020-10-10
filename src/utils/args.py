@@ -42,7 +42,7 @@ def get_parser():
     parser.add_argument("--lr_decay_steps", type=float, default=5000)
 
     ## iteration
-    parser.add_argument("--max_epochs", type=int, default=10)
+    parser.add_argument("--max_epoches", type=int, default=10)
     parser.add_argument("--max_steps", type=int, default=200000)
 
     ## logging

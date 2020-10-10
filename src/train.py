@@ -12,6 +12,7 @@ from transformers import set_seed
 
 from utils.args import get_parser, VersionConfig
 from utils.optim import get_linear_schedule_with_warmup
+from utils.utils import strftime, CountSmooth
 from model.models import BertNER
 from reader.nerReader import NERSet
 
@@ -21,10 +22,23 @@ VERSION_CONFIG = VersionConfig(
 )
 GPU_IDS=[0]
 
+def evaluate(model):
+    devset = NERSet(args, 'dev', True)
+    devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+    model.eval()
+    with tqdm(total= len(devloader)) as t:
+        t.set_description(f'EVAL')
+        for model_inputs, sample_infos in devloader:
+            labels = model_inputs.pop('label_names')
+            pred_labels = model(model_inputs)
+
+    
+    model.train()
+
 
 def main():
     USE_CUDA = True
-    writer = SummaryWriter(args.log_dir)
+    writer = SummaryWriter(join(args.log_dir, strftime()))
     if args.no_cuda or not torch.cuda.is_available():
         DEVICE = torch.device('cpu')
         logger.info('use cpu!')
@@ -51,7 +65,10 @@ def main():
 
 
     global_step = 0
-    for epoch in range(args.max_epochs):
+    loss_ = CountSmooth(100)
+    acc_ = CountSmooth(100)
+
+    for epoch in range(args.max_epoches):
         with tqdm(total=len(trainloader)) as t:
             t.set_description(f'Epoch {epoch}')
             model.train()
@@ -63,6 +80,8 @@ def main():
 
                 global_step += 1
                 loss, tag_acc = model(model_inputs)
+                loss_.add(loss.item())
+                acc_.add(tag_acc)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -71,11 +90,11 @@ def main():
 
                 writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
                 writer.add_scalar('tag-acc', tag_acc, global_step=global_step)
-                t.set_postfix(loss=loss.item(), tag_acc=tag_acc)
+                t.set_postfix(loss=loss_.get(), tag_acc=acc_.get())
                 t.update(1)
 
                 if global_step % args.save_steps == 0:
-                    save_dir = join(args.output_dir, f'step_{global_step}')
+                    save_dir = join(args.output_dir, strftime(), f'step_{global_step}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     torch.save(model, join(save_dir, 'model.pth'))
