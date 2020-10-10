@@ -6,10 +6,11 @@ from allennlp.modules import ConditionalRandomField
 
 
 class BertNER(nn.Module):
-    def __init__(self, args, USE_CUDA):
+    def __init__(self, args, USE_CUDA, DEVICE=None):
         super(BertNER, self).__init__()
 
         self.USE_CUDA=USE_CUDA
+        self.DEVICE = DEVICE if DEVICE else torch.device('cuda', 0)
 
         self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.hidden_size = self.encoder.config.hidden_size
@@ -26,7 +27,8 @@ class BertNER(nn.Module):
         batch_size = emission.shape[0]
 
         if label_names is None:
-            viterbi_path = self.crf.viterbi_tags(emission, inputs['attention_mask'])
+            viterbi_decode = self.crf.viterbi_tags(emission, inputs['attention_mask'])
+            viterbi_path = [d[0] for d in viterbi_decode]
             tag_paths = []
             for i in range(emission.shape[0]):
                 tag_paths.append([ID2LABEL[idx] for idx in viterbi_path[i]])
@@ -37,7 +39,7 @@ class BertNER(nn.Module):
 
             label_ids = torch.tensor(label_ids)
             if self.USE_CUDA:
-                label_ids = label_ids.cuda()
+                label_ids = label_ids.cuda(self.DEVICE)
             log_like_hood = self.crf(emission, label_ids, inputs['attention_mask'])
             log_like_hood /= batch_size
             return -log_like_hood, tag_acc

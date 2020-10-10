@@ -21,30 +21,30 @@ args = get_parser()
 VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length
 )
-GPU_IDS = [0]
+GPU_IDS = [1]
 
+devset = NERSet(args, 'dev', True)
+devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, collate_fn=NERSet.collate)
 
 def evaluate(model):
-    devset = NERSet(args, 'dev', True)
-    devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
     model.eval()
     tp, fp, tn, fn = 0, 0, 0, 0
     with tqdm(total=len(devloader)) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
             tag_seqs = model_inputs.pop('label_names')
-            gold_labels = sample_infos['gold']
             pred_tag_seq = model(model_inputs)
-            decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
-
-            for lb in gold_labels:
-                if not lb in decode_labels:
-                    fn += 1
-                else:
-                    tp += 1
-            for lb in decode_labels:
-                if not lb in gold_labels:
-                    fp += 1
+            batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
+            for decode_labels, gold_labels in zip(batch_decode_labels, sample_infos):
+                gold_labels = gold_labels['gold']
+                for lb in gold_labels:
+                    if not lb in decode_labels:
+                        fn += 1
+                    else:
+                        tp += 1
+                for lb in decode_labels:
+                    if not lb in gold_labels:
+                        fp += 1
     model.train()
 
     percision = tp / (tp + fp)
@@ -61,7 +61,8 @@ def main():
         logger.info('use cpu!')
         USE_CUDA = False
     else:
-        DEVICE = torch.device('cuda', 0)
+        DEVICE = torch.device('cuda', GPU_IDS[0])
+        torch.cuda.set_device(DEVICE)
         logger.info('use gpu!')
 
     set_seed(args.random_seed)
@@ -70,10 +71,10 @@ def main():
     trainloader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers,
                              shuffle=True, collate_fn=NERSet.collate)
 
-    model = BertNER(args, USE_CUDA)
+    model = BertNER(args, USE_CUDA, DEVICE)
     if USE_CUDA:
         model = nn.DataParallel(model, GPU_IDS)
-        model = model.cuda()
+        model = model.cuda(DEVICE)
     optimizer = Adam([{'params': model.module.encoder.parameters()},
                       {'params': model.module.emission_ffn.parameters()},
                       {'params': model.module.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
@@ -92,7 +93,7 @@ def main():
                 if USE_CUDA:
                     for k, v in model_inputs.items():
                         if isinstance(v, torch.Tensor):
-                            model_inputs[k] = v.cuda()(1, 3, 'te')
+                            model_inputs[k] = v.cuda(DEVICE)
 
                 global_step += 1
                 loss, tag_acc = model(model_inputs)

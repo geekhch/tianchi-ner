@@ -6,4 +6,5 @@ python src/train.py \
 --max_epoches 40 \
 --max_steps 20000 \
 --warmup_steps 100 \
---num_workers 3
+--num_workers 1 \
+--save_steps 1

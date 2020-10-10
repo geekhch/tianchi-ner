@@ -31,7 +31,7 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Di
                     tmp_end = i
                     i += 1
 
-                tag_text = text[tmp_start, tmp_end]
+                tag_text = text[tmp_start : tmp_end]
                 entitys[f_id].add((tag_type, tag_start, tag_end, tag_text))
             else:
                 i += 1
