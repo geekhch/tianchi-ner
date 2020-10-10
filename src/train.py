@@ -2,7 +2,7 @@ import os
 from os.path import join
 
 import torch
-from torch.optim import AdamW, Adam
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch import nn
 from tensorboardX import SummaryWriter
@@ -15,25 +15,42 @@ from utils.optim import get_linear_schedule_with_warmup
 from utils.utils import strftime, CountSmooth
 from model.models import BertNER
 from reader.nerReader import NERSet
+from utils import ner
 
 args = get_parser()
 VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length
 )
-GPU_IDS=[0]
+GPU_IDS = [0]
+
 
 def evaluate(model):
     devset = NERSet(args, 'dev', True)
     devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
     model.eval()
-    with tqdm(total= len(devloader)) as t:
+    tp, fp, tn, fn = 0, 0, 0, 0
+    with tqdm(total=len(devloader)) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
-            labels = model_inputs.pop('label_names')
-            pred_labels = model(model_inputs)
+            tag_seqs = model_inputs.pop('label_names')
+            gold_labels = sample_infos['gold']
+            pred_tag_seq = model(model_inputs)
+            decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
 
-    
+            for lb in gold_labels:
+                if not lb in decode_labels:
+                    fn += 1
+                else:
+                    tp += 1
+            for lb in decode_labels:
+                if not lb in gold_labels:
+                    fp += 1
     model.train()
+
+    percision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * (percision * recall) / (percision + recall)
+    return percision, recall, f1
 
 
 def main():
@@ -54,15 +71,14 @@ def main():
                              shuffle=True, collate_fn=NERSet.collate)
 
     model = BertNER(args, USE_CUDA)
-    if  USE_CUDA:
+    if USE_CUDA:
         model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda()
     optimizer = Adam([{'params': model.module.encoder.parameters()},
-                       {'params': model.module.emission_ffn.parameters()},
-                       {'params': model.module.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
+                      {'params': model.module.emission_ffn.parameters()},
+                      {'params': model.module.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
 
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
-
 
     global_step = 0
     loss_ = CountSmooth(100)
@@ -76,7 +92,7 @@ def main():
                 if USE_CUDA:
                     for k, v in model_inputs.items():
                         if isinstance(v, torch.Tensor):
-                            model_inputs[k] = v.cuda()
+                            model_inputs[k] = v.cuda()(1, 3, 'te')
 
                 global_step += 1
                 loss, tag_acc = model(model_inputs)
@@ -94,12 +110,13 @@ def main():
                 t.update(1)
 
                 if global_step % args.save_steps == 0:
+                    p, r, f1 = evaluate(model)
+                    logger.info(f"after {epoch} EPOCH,  percision={f}, recall={r}, f1={f1}")
                     save_dir = join(args.output_dir, strftime(), f'step_{global_step}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     torch.save(model, join(save_dir, 'model.pth'))
                     VERSION_CONFIG.dump(save_dir)
-
 
 
 if __name__ == '__main__':

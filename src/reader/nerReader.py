@@ -37,9 +37,11 @@ class NERSet(Dataset):
 
             text = open(fp1, encoding='utf8').read()
             labels = ['O'] * len(text)
+            gold_tags = set()
 
             ann = map(str.split, open(fp2, encoding='utf8').readlines())
             for _, tag_type, tag_start, tag_end, tag_text in ann:
+                gold_tags.add((fid, tag_type, tag_start, tag_end, tag_text))
                 tag_start, tag_end = int(tag_start), int(tag_end)
                 # 经检验，无重叠实体
                 labels[tag_start] = f'B-{tag_type}'
@@ -54,7 +56,8 @@ class NERSet(Dataset):
                     sample = {
                         'fid': fid,
                         'text': ' '.join(short_text),
-                        'token_loc_ids': short_text_loc_ids.copy()
+                        'token_loc_ids': short_text_loc_ids.copy(),
+                        'gold': gold_tags
                     }
                     _tmp_labels = short_text_labels.copy()
                     samples.append((sample, _tmp_labels))
@@ -70,7 +73,8 @@ class NERSet(Dataset):
                 sample = {
                     'fid': fid,
                     'text': ' '.join(short_text),
-                    'token_loc_ids': short_text_loc_ids.copy()
+                    'token_loc_ids': short_text_loc_ids.copy(),
+                    'gold': gold_tags
                 }
                 _tmp_labels = short_text_labels.copy()
                 samples.append((sample, _tmp_labels))
