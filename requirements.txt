@@ -1,0 +1,7 @@
+torch==1.6.0
+torchvision==0.7.0
+allennlp==1.1.0
+loguru==0.5.3
+tensorboardX==2.1
+tqdm==4.50.0
+transformers==3.0.2
