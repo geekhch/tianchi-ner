@@ -21,17 +21,31 @@ args = get_parser()
 VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length
 )
-GPU_IDS = [1]
+GPU_IDS = [0]
+
+if args.no_cuda or not torch.cuda.is_available():
+    DEVICE = torch.device('cpu')
+    logger.info('use cpu!')
+    USE_CUDA = False
+else:
+    USE_CUDA = True
+    DEVICE = torch.device('cuda', GPU_IDS[0])
+    torch.cuda.set_device(DEVICE)
+    logger.info('use gpu!')
 
 devset = NERSet(args, 'dev', True)
 devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, collate_fn=NERSet.collate)
 
 def evaluate(model):
     model.eval()
-    tp, fp, tn, fn = 0, 0, 0, 0
+    tp, fp, fn = 0, 0, 0
     with tqdm(total=len(devloader)) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
+            if USE_CUDA:
+                for k, v in model_inputs.items():
+                    if isinstance(v, torch.Tensor):
+                        model_inputs[k] = v.cuda(DEVICE)
             tag_seqs = model_inputs.pop('label_names')
             pred_tag_seq = model(model_inputs)
             batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
@@ -45,25 +59,19 @@ def evaluate(model):
                 for lb in decode_labels:
                     if not lb in gold_labels:
                         fp += 1
+            t.update(1)
+            t.set_postfix(tp=tp, fp=fp, fn=fn)
     model.train()
 
-    percision = tp / (tp + fp)
-    recall = tp / (tp + fn)
-    f1 = 2 * (percision * recall) / (percision + recall)
+    percision = tp / (tp + fp + 1e-7)
+    recall = tp / (tp + fn + 1e-7)
+    f1 = 2 * (percision * recall) / (percision + recall + 1e-7)
     return percision, recall, f1
 
 
 def main():
-    USE_CUDA = True
     writer = SummaryWriter(join(args.log_dir, strftime()))
-    if args.no_cuda or not torch.cuda.is_available():
-        DEVICE = torch.device('cpu')
-        logger.info('use cpu!')
-        USE_CUDA = False
-    else:
-        DEVICE = torch.device('cuda', GPU_IDS[0])
-        torch.cuda.set_device(DEVICE)
-        logger.info('use gpu!')
+
 
     set_seed(args.random_seed)
 
@@ -73,11 +81,11 @@ def main():
 
     model = BertNER(args, USE_CUDA, DEVICE)
     if USE_CUDA:
-        model = nn.DataParallel(model, GPU_IDS)
+        # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)
-    optimizer = Adam([{'params': model.module.encoder.parameters()},
-                      {'params': model.module.emission_ffn.parameters()},
-                      {'params': model.module.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
+    optimizer = Adam([{'params': model.encoder.parameters()},
+                      {'params': model.emission_ffn.parameters()},
+                      {'params': model.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
 
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
 
@@ -112,7 +120,7 @@ def main():
 
                 if global_step % args.save_steps == 0:
                     p, r, f1 = evaluate(model)
-                    logger.info(f"after {epoch} EPOCH,  percision={f}, recall={r}, f1={f1}")
+                    logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}")
                     save_dir = join(args.output_dir, strftime(), f'step_{global_step}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)

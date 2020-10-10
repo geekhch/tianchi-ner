@@ -1,13 +1,13 @@
 from typing import List, Dict, Tuple, Set
 
-def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Dict[str, Set[Tuple]]:
+def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> List[Set[Tuple]]:
     """
     从预测的tag序列解码
     :param pred_tag_paths: keys are text_id where values were splitted from, shape: (batch, seq_lens)
     :return: 4-tuple of entites(tag_type, tag_start, tag_end, tag_text)
     """
     assert len(batch_tag_paths) == len(sample_infos)
-    entitys = {}
+    entitys = []
     for tags, info in zip(batch_tag_paths, sample_infos):
         text = info['text']
         locs = info['token_loc_ids']  # 映射到原句的位置
@@ -15,8 +15,7 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Di
         f_id, tag_type, tag_start, tag_end, tag_text = info['fid'], None, None, None, None
         tmp_start, tmp_end = None, None
 
-        if not f_id in entitys:
-            entitys[f_id] = set()
+        cur_set = set()
 
         i = 0
         while i < len(tags):
@@ -32,9 +31,10 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Di
                     i += 1
 
                 tag_text = text[tmp_start : tmp_end]
-                entitys[f_id].add((tag_type, tag_start, tag_end, tag_text))
+                cur_set.add((tag_type, tag_start, tag_end, tag_text))
             else:
                 i += 1
+        entitys.append(cur_set)
     return entitys
 
 
