@@ -22,7 +22,7 @@ VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length,
     encoder_model=args.model_name_or_path
 )
-GPU_IDS = [0]
+GPU_IDS = [args.gpu_id]
 OUTPUT_DIR = join(args.output_dir, strftime())
 
 if args.no_cuda or not torch.cuda.is_available():

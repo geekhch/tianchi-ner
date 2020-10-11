@@ -36,6 +36,7 @@ def get_parser():
     ## device
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--no_cuda", action='store_true')
+    parser.add_argument("--gpu_id", type=int, default=0)
 
     ## optimizer
     parser.add_argument("--lr", "--learning_rate", type=float, default=5e-5, dest="learning_rate")
