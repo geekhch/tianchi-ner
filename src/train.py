@@ -121,7 +121,7 @@ def main():
 
                 if global_step % args.save_steps == 0:
                     p, r, f1 = evaluate(model)
-                    logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}")
+                    logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}\n")
                     save_dir = join(OUTPUT_DIR, f'step_{global_step}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
