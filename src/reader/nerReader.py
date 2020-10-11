@@ -11,7 +11,7 @@ class NERSet(Dataset):
     '''
 
     @print_execute_time
-    def __init__(self, args, MODE: str, FOR_TRAIN: bool, tokenizer=None):
+    def __init__(self, args, version_cfg, MODE: str, FOR_TRAIN: bool, tokenizer=None):
         assert MODE in ['train', 'dev', 'test1', 'test2']
         logger.info(f'begin reading {MODE}')
 
@@ -19,9 +19,12 @@ class NERSet(Dataset):
         self.MODE = MODE
         self.args = args
         self.max_length = args.max_seq_length
-
-        self.tokenizer = tokenizer if tokenizer else BertTokenizer.from_pretrained(
-            args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+        if version_cfg.encoder_model == 'hfl/chinese-bert-wwm-ext':
+            self.tokenizer = AutoTokenizer.from_pretrained(version_cfg.encoder_model,
+                                                           cache_dir=args.pretrained_cache_dir)
+        else:
+            self.tokenizer = tokenizer if tokenizer else BertTokenizer.from_pretrained(
+                args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.tokenizer.strip_accents = False
 
         self.samples = self._load_train_data() if FOR_TRAIN else self._load_eval_data()

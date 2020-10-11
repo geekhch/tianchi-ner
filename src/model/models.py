@@ -1,18 +1,20 @@
 import torch
 from torch import nn
-from transformers import AutoModel
+from transformers import AutoModel, AutoModelWithLMHead
 from reader.entityTypes import *
 from allennlp.modules import ConditionalRandomField
 
 
 class BertNER(nn.Module):
-    def __init__(self, args, USE_CUDA, DEVICE=None):
+    def __init__(self, args, version_cfg, USE_CUDA, DEVICE=None):
         super(BertNER, self).__init__()
 
         self.USE_CUDA=USE_CUDA
         self.DEVICE = DEVICE if DEVICE else torch.device('cuda', 0)
-
-        self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+        if version_cfg.encoder_model == 'hfl/chinese-bert-wwm-ext':
+            self.encoder = AutoModelWithLMHead.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+        else:
+            self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.hidden_size = self.encoder.config.hidden_size
 
         self.emission_ffn = nn.Linear(self.hidden_size, len(ID2LABEL))

@@ -19,7 +19,8 @@ from utils import ner
 
 args = get_parser()
 VERSION_CONFIG = VersionConfig(
-    max_seq_length=args.max_seq_length
+    max_seq_length=args.max_seq_length,
+    encoder_model=args.model_name_or_path
 )
 GPU_IDS = [0]
 OUTPUT_DIR = join(args.output_dir, strftime())
@@ -34,7 +35,7 @@ else:
     torch.cuda.set_device(DEVICE)
     logger.info('use gpu!')
 
-devset = NERSet(args, 'dev', True)
+devset = NERSet(args, VERSION_CONFIG, 'dev', True)
 devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, collate_fn=NERSet.collate)
 
 def evaluate(model):
@@ -75,11 +76,11 @@ def main():
 
     set_seed(args.random_seed)
 
-    trainset = NERSet(args, 'train', True)
+    trainset = NERSet(args, VERSION_CONFIG, 'train', True)
     trainloader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers,
                              shuffle=True, collate_fn=NERSet.collate)
 
-    model = BertNER(args, USE_CUDA, DEVICE)
+    model = BertNER(args, VERSION_CONFIG, USE_CUDA, DEVICE)
     if USE_CUDA:
         # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)

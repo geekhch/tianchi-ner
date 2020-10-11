@@ -75,8 +75,10 @@ class VersionConfig:
     '''
 
     def __init__(self,
+                 encoder_model='voidful/albert_chinese_small',
                  max_seq_length=256
                  ):
+        self.encoder_model = encoder_model
         self.max_seq_length = max_seq_length
 
     def load(self, cfg_dir):
