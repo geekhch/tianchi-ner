@@ -12,11 +12,11 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Li
     assert len(batch_tag_paths) == len(sample_infos)
     entitys = []
     for tags, info in zip(batch_tag_paths, sample_infos):
-        text = info['text']
+        text = info['raw_doc']
         locs = info['token_loc_ids']  # 映射到原句的位置
+        assert len(locs) == len(tags)
 
         f_id, tag_type, tag_start, tag_end, tag_text = info['fid'], None, None, None, None
-        tmp_start, tmp_end = None, None
 
         cur_set = set()
 
@@ -25,15 +25,13 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Li
             if tags[i].startswith('B-'):
                 tag_type = tags[i][2:]
                 tag_start = locs[i]
-                tmp_start = i
 
                 i += 1
                 while i < len(tags) and tags[i] == f'I-{tag_type}':
-                    tag_end = locs[i]
-                    tmp_end = i
                     i += 1
+                    tag_end = locs[i]
 
-                tag_text = text[tmp_start : tmp_end]
+                tag_text = text[tag_start: tag_end]
                 cur_set.add((tag_type, str(tag_start), str(tag_end), tag_text))
             else:
                 i += 1

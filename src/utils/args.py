@@ -21,6 +21,11 @@ def get_parser():
     parser.add_argument("--do_train", action='store_true')
     parser.add_argument("--do_eval", action='store_true')
     parser.add_argument("--do_test", action='store_true')
+    parser.add_argument("--max_epoches", type=int, default=10)
+    parser.add_argument("--max_steps", type=int, default=200000)
+
+    ## predict
+    parser.add_argument("--model_dir", type=str, default=None)
 
     ## batch size and device
     parser.add_argument("--per_device_train_batch_size", type=int, default=32)
@@ -41,15 +46,10 @@ def get_parser():
     parser.add_argument("--lr_decay_rate", type=float, default=0.2)
     parser.add_argument("--lr_decay_steps", type=float, default=5000)
 
-    ## iteration
-    parser.add_argument("--max_epoches", type=int, default=10)
-    parser.add_argument("--max_steps", type=int, default=200000)
 
-    ## logging
-    parser.add_argument("--logging_steps", type=int, default=0)
-
-    ## save
+    ## logging and save
     parser.add_argument("--save_steps", type=int, default=500)
+
 
     ## develop and debug
     parser.add_argument("--debug", action="store_true")
