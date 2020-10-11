@@ -60,8 +60,8 @@ def evaluate(model):
                 for lb in decode_labels:
                     if not lb in sample_info['gold']:
                         fp += 1
-            t.update(1)
-            t.set_postfix(tp=tp, fp=fp, fn=fn)
+        t.update(len(devloader))
+        t.set_postfix(tp=tp, fp=fp, fn=fn)
     model.train()
 
     percision = tp / (tp + fp + 1e-7)
