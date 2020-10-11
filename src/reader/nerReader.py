@@ -123,15 +123,19 @@ class NERSet(Dataset):
             labels = labels[:self.max_length-2]
             label_length = len(labels) + 2
         else:
-            sample = self.samples[i]
+            sample = self.samples[i].copy()
+
+        sample['token_loc_ids'] = ['-1'] + sample['token_loc_ids'] + ['-1']
 
         sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
                                                      max_length=self.max_length, truncation=True,
                                                      return_attention_mask=True)
 
+        assert len(sample['token_loc_ids']) == sum(sample_encoding['attention_mask'])
         if self.FOR_TRAIN:
             sample_encoding['label_names'] = ['[CLS]'] + labels + ['[SEP]'] \
                                              + ['[PAD]'] * (self.max_length - label_length)
+
         return sample_encoding, sample
 
     @staticmethod
