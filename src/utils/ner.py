@@ -28,9 +28,9 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Li
 
                 i += 1
                 while i < len(tags) and tags[i] == f'I-{tag_type}':
-                    i += 1
                     tag_end = locs[i]
-
+                    i += 1
+                tag_end += 1
                 tag_text = text[tag_start: tag_end]
                 cur_set.add((tag_type, str(tag_start), str(tag_end), tag_text))
             else:
