@@ -37,11 +37,11 @@ class NERSet(Dataset):
 
             text = open(fp1, encoding='utf8').read()
             labels = ['O'] * len(text)
-            gold_tags = set()
+            all_tags = {}
 
             ann = map(str.split, open(fp2, encoding='utf8').readlines())
             for _, tag_type, tag_start, tag_end, tag_text in ann:
-                gold_tags.add((fid, tag_type, tag_start, tag_end, tag_text))
+                all_tags[int(tag_start)] = (tag_type, tag_start, tag_end, tag_text)
                 tag_start, tag_end = int(tag_start), int(tag_end)
                 # 经检验，无重叠实体
                 labels[tag_start] = f'B-{tag_type}'
@@ -51,30 +51,34 @@ class NERSet(Dataset):
             short_text = []
             short_text_labels = []
             short_text_loc_ids = []
+            gold_tags = set()
             for i, token in enumerate(text):
                 if token == '。' and len(short_text) > 0:
                     sample = {
                         'fid': fid,
                         'text': ' '.join(short_text),
                         'token_loc_ids': short_text_loc_ids.copy(),
-                        'gold': gold_tags
+                        'gold': gold_tags.copy()
                     }
                     _tmp_labels = short_text_labels.copy()
                     samples.append((sample, _tmp_labels))
                     short_text.clear()
                     short_text_labels.clear()
                     short_text_loc_ids.clear()
+                    gold_tags.clear()
                 elif not re.match('\s', token):  # 非空白符
                     short_text.append(token)
                     short_text_loc_ids.append(i)
                     short_text_labels.append(labels[i])
+                    if i in all_tags:
+                        gold_tags.add(all_tags[i])
 
             if len(short_text) > 1:
                 sample = {
                     'fid': fid,
                     'text': ' '.join(short_text),
                     'token_loc_ids': short_text_loc_ids.copy(),
-                    'gold': gold_tags
+                    'gold': gold_tags.copy()
                 }
                 _tmp_labels = short_text_labels.copy()
                 samples.append((sample, _tmp_labels))

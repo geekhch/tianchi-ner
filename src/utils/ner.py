@@ -1,5 +1,8 @@
 from typing import List, Dict, Tuple, Set
 
+from tqdm import tqdm
+
+
 def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> List[Set[Tuple]]:
     """
     从预测的tag序列解码
@@ -31,10 +34,11 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Li
                     i += 1
 
                 tag_text = text[tmp_start : tmp_end]
-                cur_set.add((tag_type, tag_start, tag_end, tag_text))
+                cur_set.add((tag_type, str(tag_start), str(tag_end), tag_text))
             else:
                 i += 1
         entitys.append(cur_set)
     return entitys
+
 
 
