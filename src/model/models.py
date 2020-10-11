@@ -11,7 +11,7 @@ class BertNER(nn.Module):
 
         self.USE_CUDA=USE_CUDA
         self.DEVICE = DEVICE if DEVICE else torch.device('cuda', 0)
-        if version_cfg.encoder_model == 'hfl/chinese-bert-wwm-ext':
+        if version_cfg.encoder_model in ['hfl/chinese-bert-wwm-ext', 'hfl/chinese-roberta-wwm-ext']:
             self.encoder = AutoModelWithLMHead.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         else:
             self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
@@ -23,7 +23,8 @@ class BertNER(nn.Module):
 
     def forward(self, inputs: dict):
         label_names = inputs.pop('label_names', None)
-        encoded, _ = self.encoder(**inputs)
+        outputs = self.encoder(**inputs)
+        encoded, _ = outputs
 
         emission = self.emission_ffn(encoded)
         batch_size = emission.shape[0]
@@ -51,7 +52,8 @@ class BertNER(nn.Module):
     def predict(self, inputs: dict):
         if 'label_names' in inputs:
             inputs.pop('label_names')
-        encoded, _ = self.encoder(**inputs)
+        outputs = self.encoder(**inputs)
+        encoded, _ = outputs
         emission = self.emission_ffn(encoded)
         viterbi_decode = self.crf.viterbi_tags(emission, inputs['attention_mask'])
         viterbi_path = [d[0] for d in viterbi_decode]
