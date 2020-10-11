@@ -22,6 +22,7 @@ VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length
 )
 GPU_IDS = [0]
+OUTPUT_DIR = join(args.output_dir, strftime())
 
 if args.no_cuda or not torch.cuda.is_available():
     DEVICE = torch.device('cpu')
@@ -121,7 +122,7 @@ def main():
                 if global_step % args.save_steps == 0:
                     p, r, f1 = evaluate(model)
                     logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}")
-                    save_dir = join(args.output_dir, strftime(), f'step_{global_step}')
+                    save_dir = join(OUTPUT_DIR, f'step_{global_step}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     torch.save(model, join(save_dir, 'model.pth'))
