@@ -48,7 +48,7 @@ def evaluate(model):
                     if isinstance(v, torch.Tensor):
                         model_inputs[k] = v.cuda(DEVICE)
             label_names = model_inputs.pop('label_names')
-            pred_tag_seq = model(model_inputs)
+            pred_tag_seq = model.predict(model_inputs)
             batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
             for decode_labels, sample_info in zip(batch_decode_labels, sample_infos):
                 for lb in sample_info['gold']:

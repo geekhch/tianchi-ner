@@ -13,6 +13,7 @@ class NERSet(Dataset):
     @print_execute_time
     def __init__(self, args, MODE: str, FOR_TRAIN: bool, tokenizer=None):
         assert MODE in ['train', 'dev', 'test1', 'test2']
+        logger.info(f'begin reading {MODE}')
 
         self.FOR_TRAIN = FOR_TRAIN
         self.MODE = MODE
@@ -23,7 +24,6 @@ class NERSet(Dataset):
             args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.tokenizer.strip_accents = False
 
-        logger.info(f'begin reading {MODE}')
         self.samples = self._load_train_data() if FOR_TRAIN else self._load_eval_data()
 
     def _load_train_data(self):
@@ -57,6 +57,7 @@ class NERSet(Dataset):
                     sample = {
                         'fid': fid,
                         'text': ' '.join(short_text),
+                        'raw_doc': text,
                         'token_loc_ids': short_text_loc_ids.copy(),
                         'gold': gold_tags.copy()
                     }
@@ -77,6 +78,7 @@ class NERSet(Dataset):
                 sample = {
                     'fid': fid,
                     'text': ' '.join(short_text),
+                    'raw_doc': text,
                     'token_loc_ids': short_text_loc_ids.copy(),
                     'gold': gold_tags.copy()
                 }
@@ -100,6 +102,7 @@ class NERSet(Dataset):
                     sample = {
                         'fid': fid,
                         'text': ' '.join(short_text),
+                        'raw_doc': text,
                         'token_loc_ids': short_text_loc_ids.copy()
                     }
                     short_text.clear()
@@ -113,6 +116,7 @@ class NERSet(Dataset):
                 sample = {
                     'fid': fid,
                     'text': ' '.join(short_text),
+                    'raw_doc': text,
                     'token_loc_ids': short_text_loc_ids.copy()
                 }
                 samples.append(sample)
@@ -129,7 +133,7 @@ class NERSet(Dataset):
         else:
             sample = self.samples[i].copy()
 
-        sample['token_loc_ids'] = ['-1'] + sample['token_loc_ids'] + ['-1']
+        sample['token_loc_ids'] = [None] + sample['token_loc_ids'] + [None]  # for cls and seq
 
         sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
                                                      max_length=self.max_length, truncation=True,
