@@ -11,10 +11,7 @@ class BertNER(nn.Module):
 
         self.USE_CUDA=USE_CUDA
         self.DEVICE = DEVICE if DEVICE else torch.device('cuda', 0)
-        if version_cfg.encoder_model in ['hfl/chinese-bert-wwm-ext', 'hfl/chinese-roberta-wwm-ext']:
-            self.encoder = AutoModelWithLMHead.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
-        else:
-            self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+        self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.hidden_size = self.encoder.config.hidden_size
 
         self.emission_ffn = nn.Linear(self.hidden_size, len(ID2LABEL))
@@ -24,6 +21,7 @@ class BertNER(nn.Module):
     def forward(self, inputs: dict):
         label_names = inputs.pop('label_names', None)
         outputs = self.encoder(**inputs)
+        # print(outputs[0].shape)
         encoded, _ = outputs
 
         emission = self.emission_ffn(encoded)
