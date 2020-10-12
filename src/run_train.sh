@@ -15,7 +15,7 @@
 
 # 不使用crf
 # export ENCODER=hfl/chinese-bert-wwm-ext
-export ENCODER=clue/roberta_chinese_base
+export ENCODER=hfl/chinese-roberta-wwm-ext
 
 python src/train.py \
 --model_name_or_path $ENCODER \

@@ -121,12 +121,14 @@ def main():
 
                 if global_step % args.save_steps == 0:
                     p, r, f1 = evaluate(model)
-                    logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}\n")
+                    logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}, dev_size={len(devset)}\n")
+                    
                     save_dir = join(OUTPUT_DIR, f'step_{global_step}')
-                    with open(join(save_dir, 'evaluate.json'), 'w') as f:
-                        f.write(f'precision={p}, recall={r}, f1={f1}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
+
+                    with open(join(save_dir, 'evaluate.json'), 'w') as f:
+                        f.write(f'precision={p}, recall={r}, f1={f1}')
                     torch.save(model, join(save_dir, 'model.pth'))
                     VERSION_CONFIG.dump(save_dir)
                     
