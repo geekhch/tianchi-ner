@@ -20,7 +20,8 @@ from utils import ner
 args = get_parser()
 VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length,
-    encoder_model=args.model_name_or_path
+    encoder_model=args.model_name_or_path,
+    use_crf=args.use_crf
 )
 GPU_IDS = [args.gpu_id]
 OUTPUT_DIR = join(args.output_dir, strftime())
@@ -72,7 +73,7 @@ def evaluate(model):
 
 def main():
     writer = SummaryWriter(join(args.log_dir, strftime()))
-
+    logger.info(f"output dir is: {OUTPUT_DIR}")
 
     set_seed(args.random_seed)
 
@@ -85,8 +86,7 @@ def main():
         # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)
     optimizer = Adam([{'params': model.encoder.parameters()},
-                      {'params': model.emission_ffn.parameters()},
-                      {'params': model.crf.parameters(), "lr": 1e-3}], lr=args.learning_rate)
+                      {'params': model.emission_ffn.parameters()}], lr=args.learning_rate)
 
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
 
@@ -123,10 +123,13 @@ def main():
                     p, r, f1 = evaluate(model)
                     logger.info(f"after {epoch} EPOCH,  percision={p}, recall={r}, f1={f1}\n")
                     save_dir = join(OUTPUT_DIR, f'step_{global_step}')
+                    with open(join(save_dir, 'evaluate.json'), 'w') as f:
+                        f.write(f'precision={p}, recall={r}, f1={f1}')
                     if not os.path.exists(save_dir):
                         os.makedirs(save_dir)
                     torch.save(model, join(save_dir, 'model.pth'))
                     VERSION_CONFIG.dump(save_dir)
+                    
 
 
 if __name__ == '__main__':

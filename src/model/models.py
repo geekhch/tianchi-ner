@@ -16,6 +16,11 @@ class BertNER(nn.Module):
 
         self.emission_ffn = nn.Linear(self.hidden_size, len(ID2LABEL))
         self.crf = ConditionalRandomField(len(ID2LABEL), include_start_end_transitions=False)
+        
+        # 将转移矩阵参数冻结，相当于不使用CRF
+        if not args.use_crf:
+            self.crf.transitions.requires_grad=False
+            torch.nn.init.ones_(self.crf.transitions)
 
 
     def forward(self, inputs: dict):
