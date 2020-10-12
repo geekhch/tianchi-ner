@@ -1,5 +1,6 @@
 from numpy import mean
 from datetime import datetime
+import os
 
 
 class CountSmooth:
@@ -32,6 +33,12 @@ def print_execute_time(func):
         return func_return
 
     return wrapper
+
+
+def clear_dir(dir):
+    files = [os.path.join(dir, f) for f in os.listdir(dir)]
+    for f in files:
+        os.remove(f)
 
 
 if __name__ == '__main__':
