@@ -61,6 +61,7 @@ def get_parser():
     parser.add_argument("--select_methods", type=str, default='mean')
     parser.add_argument("--eval_num", type=int, default=500)
     parser.add_argument("--random_seed", type=int, default=2020)
+    parser.add_argument("--use_crf", action='store_true')
 
     return parser.parse_args()
 
@@ -77,10 +78,12 @@ class VersionConfig:
 
     def __init__(self,
                  encoder_model='voidful/albert_chinese_small',
-                 max_seq_length=256
+                 max_seq_length=256,
+                 use_crf=False
                  ):
         self.encoder_model = encoder_model
         self.max_seq_length = max_seq_length
+        self.use_crf = use_crf
 
     def load(self, cfg_dir):
         cfg_path = join(cfg_dir, 'version_config.json')
