@@ -206,6 +206,7 @@ class KFoldsWrapper:
             file_set.add((filedir, fn_))
 
         file_list = list(file_set)
+        file_list.sort(key=lambda x: int(x[1]))
         import random
         random.seed(self.seed)
         random.shuffle(file_list)
