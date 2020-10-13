@@ -6,7 +6,7 @@ from allennlp.modules import ConditionalRandomField
 
 
 class BertNER(nn.Module):
-    def __init__(self, args, version_cfg, USE_CUDA, DEVICE=None):
+    def __init__(self, args, cfg, USE_CUDA, DEVICE=None):
         super(BertNER, self).__init__()
 
         self.USE_CUDA=USE_CUDA
@@ -18,7 +18,7 @@ class BertNER(nn.Module):
         self.crf = ConditionalRandomField(len(ID2LABEL), include_start_end_transitions=False)
         
         # 将转移矩阵参数冻结，相当于不使用CRF
-        if not args.use_crf:
+        if not cfg.use_crf:
             self.crf.transitions.requires_grad=False
             torch.nn.init.zeros_(self.crf.transitions)
 
