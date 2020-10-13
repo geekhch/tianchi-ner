@@ -191,20 +191,21 @@ class KFoldsWrapper:
         self._load_data_list()
 
     def _load_data_list(self):
-        file_list = []
+        file_set = set()
 
         filedir = os.path.join(self.args.data_dir, 'train')
         assert os.path.exists(filedir)
         for fn in os.listdir(filedir):
             fn_ = fn.split('.')[0]
-            file_list.append((filedir, fn_))
+            file_set.add((filedir, fn_))
 
         filedir = os.path.join(self.args.data_dir, 'dev')
         assert os.path.exists(filedir)
         for fn in os.listdir(filedir):
             fn_ = fn.split('.')[0]
-            file_list.append((filedir, fn_))
+            file_set.add((filedir, fn_))
 
+        file_list = list(file_set)
         import random
         random.seed(self.seed)
         random.shuffle(file_list)
