@@ -92,7 +92,7 @@ def main():
         dev_fold_id, num_folds = args.k_folds.split('/')
         dev_fold_id, num_folds = int(dev_fold_id), int(num_folds)
         kfTool = KFoldsWrapper(args, VERSION_CONFIG)
-        devset, trainset = kfTool.split_train_dev(num_folds, dev_fold_id)
+        trainset, devset = kfTool.split_train_dev(num_folds, dev_fold_id)
 
     devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False,
                            collate_fn=NERSet.collate)
