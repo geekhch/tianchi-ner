@@ -39,7 +39,7 @@ else:
 devset = NERSet(args, VERSION_CONFIG, 'dev', True)
 devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, collate_fn=NERSet.collate)
 
-def evaluate(model):
+def evaluate(model, debug=False):
     model.eval()
     tp, fp, fn = 0, 0, 0
     with tqdm(total=len(devloader)) as t:
@@ -55,12 +55,19 @@ def evaluate(model):
             for decode_labels, sample_info in zip(batch_decode_labels, sample_infos):
                 for lb in sample_info['gold']:
                     if not lb in decode_labels:
+                        if debug:
+                            print('FN:', lb)
                         fn += 1
                     else:
                         tp += 1
                 for lb in decode_labels:
                     if not lb in sample_info['gold']:
+                        if debug:
+                            print('FP:', lb)
                         fp += 1
+                if debug:
+                    print(pred_tag_seq[0])
+                    print(sample_info['fid'], sample_info['gold'], sample_info['text'], end='\n\n')
         t.update(len(devloader))
         t.set_postfix(tp=tp, fp=fp, fn=fn)
     model.train()

@@ -25,7 +25,7 @@ def decode_pred_seqs(batch_tag_paths: List[List[str]], sample_infos: List) -> Li
             if tags[i].startswith('B-'):
                 tag_type = tags[i][2:]
                 tag_start = locs[i]
-                tag_end = locs[i] + 1
+                tag_end = locs[i]
                 i += 1
                 while i < len(tags) and tags[i] == f'I-{tag_type}':
                     tag_end = locs[i]
