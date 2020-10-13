@@ -4,6 +4,8 @@ from transformers import AutoTokenizer, AlbertTokenizer, BertTokenizer
 import os, re
 from utils.utils import *
 from loguru import logger
+from typing import List, Tuple
+
 
 class NERSet(Dataset):
     ''' 天池中医药NER任务：
@@ -11,7 +13,14 @@ class NERSet(Dataset):
     '''
 
     @print_execute_time
-    def __init__(self, args, version_cfg, MODE: str, FOR_TRAIN: bool, tokenizer=None):
+    def __init__(self, args, version_cfg, MODE, FOR_TRAIN, file_paths: List[Tuple]=None):
+        '''
+        :param args:
+        :param version_cfg:
+        :param MODE: str of {train, dev ,test...}
+        :param FOR_TRAIN:  Bool
+        :param file_paths:  list of Tuples(dir, fid)
+        '''
         assert MODE in ['train', 'dev', 'test1', 'test2']
         logger.info(f'begin reading {MODE}')
 
@@ -23,18 +32,23 @@ class NERSet(Dataset):
             self.tokenizer = AutoTokenizer.from_pretrained(version_cfg.encoder_model,
                                                            cache_dir=args.pretrained_cache_dir)
         else:
-            self.tokenizer = tokenizer if tokenizer else BertTokenizer.from_pretrained(
-                args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+            self.tokenizer = BertTokenizer.from_pretrained(args.model_name_or_path,
+                                                           cache_dir=args.pretrained_cache_dir)
         self.tokenizer.strip_accents = False
+
+        # init file list
+        if file_paths is None:
+            filedir = os.path.join(self.args.data_dir, self.MODE)
+            fids = set([fn.split('.')[0] for fn in os.listdir(filedir)])
+            self.file_paths = [(filedir, fid) for fid in fids]
+        else:
+            self.file_paths = file_paths
 
         self.samples = self._load_train_data() if FOR_TRAIN else self._load_eval_data()
 
     def _load_train_data(self):
-        filedir = os.path.join(self.args.data_dir, self.MODE)
-        fids = set([fn.split('.')[0] for fn in os.listdir(filedir)])
-
         samples = []
-        for fid in fids:
+        for filedir, fid in self.file_paths:
             fp1 = os.path.join(filedir, f'{fid}.txt')
             fp2 = os.path.join(filedir, f'{fid}.ann')
 
@@ -90,11 +104,8 @@ class NERSet(Dataset):
         return samples
 
     def _load_eval_data(self):
-        filedir = os.path.join(self.args.data_dir, self.MODE)
-        fids = set([fn.split('.')[0] for fn in os.listdir(filedir)])
-
         samples = []
-        for fid in fids:
+        for filedir, fid in self.file_paths:
             fp1 = os.path.join(filedir, f'{fid}.txt')
             text = open(fp1, encoding='utf8').read()
 
@@ -131,12 +142,13 @@ class NERSet(Dataset):
     def __getitem__(self, i):
         if self.FOR_TRAIN:
             sample, labels = self.samples[i]
-            labels = labels[:self.max_length-2]
+            labels = labels[:self.max_length - 2]
             label_length = len(labels) + 2
         else:
             sample = self.samples[i].copy()
 
-        sample['token_loc_ids'] = [sample['token_loc_ids'][0]] + sample['token_loc_ids'] + [sample['token_loc_ids'][-1]+1]  # for cls and seq
+        sample['token_loc_ids'] = [sample['token_loc_ids'][0]] + sample['token_loc_ids'] + [
+            sample['token_loc_ids'][-1] + 1]  # for cls and seq
 
         sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
                                                      max_length=self.max_length, truncation=True,
@@ -168,6 +180,55 @@ class NERSet(Dataset):
                     model_inputs[k] = torch.tensor(model_inputs[k], dtype=torch.float64)
 
         return model_inputs, sample_infos
+
+
+class KFoldsWrapper:
+    def __init__(self, args, cfg):
+        self.seed = args.random_seed
+        self.args = args
+        self.cfg = cfg
+        self._load_data_list()
+
+    def _load_data_list(self):
+        file_list = []
+
+        filedir = os.path.join(self.args.data_dir, 'train')
+        assert os.path.exists(filedir)
+        for fn in os.listdir(filedir):
+            fn_ = fn.split('.')[0]
+            file_list.append((filedir, fn_))
+
+        filedir = os.path.join(self.args.data_dir, 'dev')
+        assert os.path.exists(filedir)
+        for fn in os.listdir(filedir):
+            fn_ = fn.split('.')[0]
+            file_list.append((filedir, fn_))
+
+        import random
+        random.seed(self.seed)
+        random.shuffle(file_list)
+
+        self._file_list = file_list
+
+    def split_train_dev(self, num_folds, dev_fold_id):
+        assert 0 <= dev_fold_id < num_folds
+        fold_size = len(self._file_list) // num_folds
+
+        dev_start = fold_size * dev_fold_id
+        if dev_fold_id == num_folds - 1:
+            dev_end = len(self._file_list)
+        else:
+            dev_end = dev_start + fold_size
+
+        train_list = self._file_list[:dev_start] + self._file_list[dev_end:]
+        dev_list = self._file_list[dev_start:dev_end]
+        trainset = NERSet(self.args, self.cfg, 'train', True, train_list)
+        devset = NERSet(self.args, self.cfg, 'dev', True, dev_list)
+
+        return trainset, devset
+
+
+
 
 if __name__ == '__main__':
     from utils.args import get_parser

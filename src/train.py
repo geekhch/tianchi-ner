@@ -14,14 +14,15 @@ from utils.args import get_parser, VersionConfig
 from utils.optim import get_linear_schedule_with_warmup
 from utils.utils import strftime, CountSmooth
 from model.models import BertNER
-from reader.nerReader import NERSet
+from reader.nerReader import NERSet, KFoldsWrapper
 from utils import ner
 
 args = get_parser()
 VERSION_CONFIG = VersionConfig(
     max_seq_length=args.max_seq_length,
     encoder_model=args.model_name_or_path,
-    use_crf=args.use_crf
+    use_crf=args.use_crf,
+    k_folds=args.k_folds
 )
 GPU_IDS = [args.gpu_id]
 OUTPUT_DIR = join(args.output_dir, strftime())
@@ -36,10 +37,8 @@ else:
     torch.cuda.set_device(DEVICE)
     logger.info('use gpu!')
 
-devset = NERSet(args, VERSION_CONFIG, 'dev', True)
-devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False, collate_fn=NERSet.collate)
 
-def evaluate(model, debug=False):
+def evaluate(model, devloader, debug=False):
     model.eval()
     tp, fp, fn = 0, 0, 0
     with tqdm(total=len(devloader)) as t:
@@ -83,12 +82,23 @@ def main():
     logger.info(f"output dir is: {OUTPUT_DIR}")
 
     set_seed(args.random_seed)
+    model = BertNER(args, VERSION_CONFIG, USE_CUDA, DEVICE)
 
-    trainset = NERSet(args, VERSION_CONFIG, 'train', True)
+    if args.k_folds is None:
+        trainset = NERSet(args, VERSION_CONFIG, 'train', True)
+        devset = NERSet(args, VERSION_CONFIG, 'dev', True)
+    else:
+        logger.info(f"use k-folds: {args.k_folds}...")
+        dev_fold_id, num_folds = args.k_folds.split('/')
+        dev_fold_id, num_folds = int(dev_fold_id), int(num_folds)
+        kfTool = KFoldsWrapper(args, VERSION_CONFIG)
+        devset, trainset = kfTool.split_train_dev(num_folds, dev_fold_id)
+
+    devloader = DataLoader(devset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False,
+                           collate_fn=NERSet.collate)
     trainloader = DataLoader(trainset, batch_size=args.batch_size, num_workers=args.num_workers,
                              shuffle=True, collate_fn=NERSet.collate)
 
-    model = BertNER(args, VERSION_CONFIG, USE_CUDA, DEVICE)
     if USE_CUDA:
         # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)
@@ -128,7 +138,7 @@ def main():
                 t.update(1)
 
             # eval and save model every epoch
-            p, r, f1 = evaluate(model)
+            p, r, f1 = evaluate(model, devloader)
             logger.info(f"after {global_step} steps,  percision={p}, recall={r}, f1={f1}\n")
             
             save_dir = join(OUTPUT_DIR, f'step_{global_step}')
@@ -136,7 +146,8 @@ def main():
                 os.makedirs(save_dir)
 
             with open(join(save_dir, 'evaluate.txt'), 'w') as f:
-                f.write(f'precision={p}, recall={r}, f1={f1}, dev_size={len(devset)}, batch_size={args.batch_size}, epoch={epoch}')
+                f.write(f'precision={p}, recall={r}, f1={f1}dev_size={len(devset)}\n')
+                f.write(f'batch_size={args.batch_size}, epoch={epoch}, k_folds={args.k_folds}')
             torch.save(model, join(save_dir, 'model.pth'))
             VERSION_CONFIG.dump(save_dir)
                     

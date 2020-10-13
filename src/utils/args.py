@@ -3,6 +3,7 @@ import json
 import os
 from os.path import join
 from loguru import logger
+from typing import List
 
 
 def get_parser():
@@ -11,7 +12,6 @@ def get_parser():
     ## path manager
     parser.add_argument("--model_name_or_path", type=str, default=None,
                         help="Path to pretrained model or model identifier from huggingface.co/models")
-    parser.add_argument("--load_from", type=str, default=None)
     parser.add_argument("--log_dir", type=str, default="./log")
     parser.add_argument("--data_dir", type=str, default="data")
     parser.add_argument("--output_dir", type=str, default="output")
@@ -62,6 +62,9 @@ def get_parser():
     parser.add_argument("--eval_num", type=int, default=500)
     parser.add_argument("--random_seed", type=int, default=2020)
     parser.add_argument("--use_crf", action='store_true')
+    parser.add_argument("--k_folds", type=str, default=None,
+                        help="""specified as 'dev_id/num_folds', where dev_id and num_folds are both Int, like 0/10、 
+                        4/5.""")
 
     return parser.parse_args()
 
@@ -79,11 +82,13 @@ class VersionConfig:
     def __init__(self,
                  encoder_model='voidful/albert_chinese_small',
                  max_seq_length=256,
-                 use_crf=False
+                 use_crf=False,
+                 k_folds=None
                  ):
         self.encoder_model = encoder_model
         self.max_seq_length = max_seq_length
         self.use_crf = use_crf
+        self.k_folds = k_folds
 
     def load(self, cfg_dir):
         cfg_path = join(cfg_dir, 'version_config.json')
@@ -102,6 +107,8 @@ class VersionConfig:
 
 
 if __name__ == '__main__':
-    cfg = VersionConfig('a', 'b', 'c')
-    cfg.dump('./')
-    n_cfg = VersionConfig.load('./')
+    # cfg = VersionConfig('a', 'b', 'c')
+    # cfg.dump('./')
+    # n_cfg = VersionConfig.load('./')
+    args = get_parser()
+    print(args.k_folds)
