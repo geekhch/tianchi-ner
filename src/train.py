@@ -10,6 +10,7 @@ from loguru import logger
 from tqdm import tqdm
 from transformers import set_seed
 
+from reader.entityTypes import LABEL2ID
 from utils.args import get_parser, VersionConfig
 from utils.optim import get_linear_schedule_with_warmup
 from utils.utils import strftime, CountSmooth
@@ -44,11 +45,11 @@ def evaluate(model, devloader, debug=False):
     with tqdm(total=len(devloader)) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
-            # if USE_CUDA:
-            #     for k, v in model_inputs.items():
-            #         if isinstance(v, torch.Tensor):
-            #             model_inputs[k] = v.cuda(DEVICE)
             label_names = model_inputs.pop('label_names')
+            if USE_CUDA:
+                for k, v in model_inputs.items():
+                    if isinstance(v, torch.Tensor):
+                        model_inputs[k] = v.cuda(DEVICE)
             pred_tag_seq = model.predict(model_inputs)
             batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
             for decode_labels, sample_info in zip(batch_decode_labels, sample_infos):
@@ -78,11 +79,11 @@ def evaluate(model, devloader, debug=False):
 
 
 def main():
-    # writer = SummaryWriter(join(args.log_dir, strftime()))
+    writer = SummaryWriter(join(args.log_dir, strftime()))
     logger.info(f"output dir is: {OUTPUT_DIR}")
 
     set_seed(args.random_seed)
-    model = BertNER(args, VERSION_CONFIG, USE_CUDA, DEVICE)
+    model = BertNER(args, VERSION_CONFIG)
 
     if args.k_folds is None:
         trainset = NERSet(args, VERSION_CONFIG, 'train', True)
@@ -100,7 +101,6 @@ def main():
                              shuffle=True, collate_fn=NERSet.collate)
 
     if USE_CUDA:
-        # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)
     optimizer = Adam([{'params': model.encoder.parameters()},
                       {'params': model.emission_ffn.parameters()},
@@ -110,32 +110,30 @@ def main():
 
     global_step = 0
     loss_ = CountSmooth(100)
-    acc_ = CountSmooth(100)
 
     for epoch in range(args.max_epoches):
         with tqdm(total=len(trainloader)) as t:
             t.set_description(f'Epoch {epoch}')
             model.train()
             for model_inputs, sample_infos in trainloader:
-                # if USE_CUDA:
-                #     for k, v in model_inputs.items():
-                #         if isinstance(v, torch.Tensor):
-                #             model_inputs[k] = v.cuda(DEVICE)
+                label_names = model_inputs.pop('label_names')
+                label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names]).cuda(DEVICE)
+                if USE_CUDA:
+                    for k, v in model_inputs.items():
+                        if isinstance(v, torch.Tensor):
+                            model_inputs[k] = v.cuda(DEVICE)
 
                 global_step += 1
-                # loss, tag_acc = model(model_inputs)
-                loss = model(model_inputs)
+                loss = model(model_inputs, label_ids)
                 loss_.add(loss.item())
-                # acc_.add(tag_acc)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
 
-                # writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
-                # writer.add_scalar('tag-acc', tag_acc, global_step=global_step)
-                t.set_postfix(loss=loss_.get(), tag_acc=acc_.get())
+                writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
+                t.set_postfix(loss=loss_.get())
                 t.update(1)
 
             # eval and save model every epoch
