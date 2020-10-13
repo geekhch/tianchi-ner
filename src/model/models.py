@@ -20,7 +20,7 @@ class BertNER(nn.Module):
         # 将转移矩阵参数冻结，相当于不使用CRF
         if not args.use_crf:
             self.crf.transitions.requires_grad=False
-            torch.nn.init.ones_(self.crf.transitions)
+            torch.nn.init.zeros_(self.crf.transitions)
 
 
     def forward(self, inputs: dict):
