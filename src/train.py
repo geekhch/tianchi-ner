@@ -86,7 +86,8 @@ def main():
         # model = nn.DataParallel(model, GPU_IDS)
         model = model.cuda(DEVICE)
     optimizer = Adam([{'params': model.encoder.parameters()},
-                      {'params': model.emission_ffn.parameters()}], lr=args.learning_rate)
+                      {'params': model.emission_ffn.parameters()},
+                      {'params': model.crf.parameters(), "lr": 1e-2}], lr=args.learning_rate)
 
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
 
