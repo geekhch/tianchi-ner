@@ -15,7 +15,7 @@ from utils.args import get_parser, VersionConfig
 from utils.optim import get_linear_schedule_with_warmup
 from utils.utils import strftime, CountSmooth
 from model.models import BertNER
-from reader.nerReader import NERSet, KFoldsWrapper
+from reader.nerReader import NERSet, KFoldsWrapper, ThreadWrapper
 from utils import ner
 
 args = get_parser()
@@ -112,16 +112,17 @@ def main():
     loss_ = CountSmooth(100)
 
     for epoch in range(args.max_epoches):
+        trainWrapper = ThreadWrapper(trainloader, USE_CUDA, DEVICE)
         with tqdm(total=len(trainloader), ncols=50) as t:
             t.set_description(f'Epoch {epoch}')
             model.train()
-            for model_inputs, sample_infos in trainloader:
-                label_names = model_inputs.pop('label_names')
-                label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names]).cuda(DEVICE)
-                if USE_CUDA:
-                    for k, v in model_inputs.items():
-                        if isinstance(v, torch.Tensor):
-                            model_inputs[k] = v.cuda(DEVICE)
+            for model_inputs, label_ids, sample_infos in trainWrapper.batch_generator():
+                # label_names = model_inputs.pop('label_names')
+                # label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names]).cuda(DEVICE)
+                # if USE_CUDA:
+                #     for k, v in model_inputs.items():
+                #         if isinstance(v, torch.Tensor):
+                #             model_inputs[k] = v.cuda(DEVICE)
 
                 global_step += 1
                 loss = model(model_inputs, label_ids)
@@ -145,7 +146,7 @@ def main():
                 os.makedirs(save_dir)
 
             with open(join(save_dir, 'evaluate.txt'), 'w') as f:
-                f.write(f'precision={p}, recall={r}, f1={f1}dev_size={len(devset)}\n')
+                f.write(f'precision={p}, recall={r}, f1={f1} dev_size={len(devset)}\n')
                 f.write(f'batch_size={args.batch_size}, epoch={epoch}, k_folds={args.k_folds}')
             torch.save(model, join(save_dir, 'model.pth'))
             VERSION_CONFIG.dump(save_dir)
