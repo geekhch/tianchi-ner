@@ -44,10 +44,10 @@ def evaluate(model, devloader, debug=False):
     with tqdm(total=len(devloader)) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
-            if USE_CUDA:
-                for k, v in model_inputs.items():
-                    if isinstance(v, torch.Tensor):
-                        model_inputs[k] = v.cuda(DEVICE)
+            # if USE_CUDA:
+            #     for k, v in model_inputs.items():
+            #         if isinstance(v, torch.Tensor):
+            #             model_inputs[k] = v.cuda(DEVICE)
             label_names = model_inputs.pop('label_names')
             pred_tag_seq = model.predict(model_inputs)
             batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
@@ -117,10 +117,10 @@ def main():
             t.set_description(f'Epoch {epoch}')
             model.train()
             for model_inputs, sample_infos in trainloader:
-                if USE_CUDA:
-                    for k, v in model_inputs.items():
-                        if isinstance(v, torch.Tensor):
-                            model_inputs[k] = v.cuda(DEVICE)
+                # if USE_CUDA:
+                #     for k, v in model_inputs.items():
+                #         if isinstance(v, torch.Tensor):
+                #             model_inputs[k] = v.cuda(DEVICE)
 
                 global_step += 1
                 # loss, tag_acc = model(model_inputs)
