@@ -6,11 +6,9 @@ from allennlp.modules import ConditionalRandomField
 
 
 class BertNER(nn.Module):
-    def __init__(self, args, cfg, USE_CUDA, DEVICE=None):
+    def __init__(self, args, cfg):
         super(BertNER, self).__init__()
 
-        self.USE_CUDA=USE_CUDA
-        self.DEVICE = DEVICE if DEVICE else torch.device('cuda', 0)
         self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
         self.hidden_size = self.encoder.config.hidden_size
 
@@ -22,23 +20,15 @@ class BertNER(nn.Module):
             self.crf.transitions.requires_grad=False
             torch.nn.init.zeros_(self.crf.transitions)
 
-
-    def forward(self, inputs: dict):
-        label_names = inputs.pop('label_names', None)
-        outputs = self.encoder(**inputs)
+    def forward(self, encoder_inputs: dict, label_ids: torch.Tensor):
+        outputs = self.encoder(**encoder_inputs)
         # print(outputs[0].shape)
         encoded, _ = outputs
 
         emission = self.emission_ffn(encoded)
         batch_size = emission.shape[0]
 
-        label_ids = [[LABEL2ID[l_name] for l_name in line] for line in label_names]
-        # tag_acc = self.eval_segment_acc(emission, inputs['attention_mask'], label_ids)
-
-        label_ids = torch.tensor(label_ids)
-        if self.USE_CUDA:
-            label_ids = label_ids.cuda(self.DEVICE)
-        log_like_hood = self.crf(emission, label_ids, inputs['attention_mask'])
+        log_like_hood = self.crf(emission, label_ids, encoder_inputs['attention_mask'])
         log_like_hood /= batch_size
         # return -log_like_hood, tag_acc
         return -log_like_hood

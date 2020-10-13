@@ -6,8 +6,6 @@ from utils.utils import *
 from loguru import logger
 from typing import List, Tuple
 
-global DEVICE
-global USE_CUDA
 
 class NERSet(Dataset):
     ''' 天池中医药NER任务：
@@ -37,18 +35,6 @@ class NERSet(Dataset):
             self.tokenizer = BertTokenizer.from_pretrained(args.model_name_or_path,
                                                            cache_dir=args.pretrained_cache_dir)
         self.tokenizer.strip_accents = False
-
-        if args.no_cuda or not torch.cuda.is_available():
-            self.DEVICE = torch.device('cpu')
-            self.USE_CUDA = False
-        else:
-            self.USE_CUDA = True
-            self.DEVICE = torch.device('cuda', args.gpu_id)
-            torch.cuda.set_device(self.DEVICE)
-        global DEVICE
-        global USE_CUDA
-        DEVICE = self.DEVICE
-        USE_CUDA = self.USE_CUDA
 
         # init file list
         if file_paths is None:
@@ -171,11 +157,6 @@ class NERSet(Dataset):
 
         assert len(sample['token_loc_ids']) == sum(sample_encoding['attention_mask'])
 
-        if self.USE_CUDA:
-            for k, v in sample_encoding.items():
-                if isinstance(v, torch.Tensor):
-                    sample_encoding[k] = v.cuda(self.DEVICE)
-
         if self.FOR_TRAIN:
             sample_encoding['label_names'] = ['[CLS]'] + labels + ['[SEP]'] \
                                              + ['[PAD]'] * (self.max_length - label_length)
@@ -196,16 +177,9 @@ class NERSet(Dataset):
             # convert to tensor
             if isinstance(model_inputs[k][0], list):
                 if isinstance(model_inputs[k][0][0], int):
-                    if USE_CUDA:
-                        model_inputs[k] = torch.tensor(model_inputs[k], device=DEVICE)
-                    else:
-                        model_inputs[k] = torch.tensor(model_inputs[k])
+                    model_inputs[k] = torch.tensor(model_inputs[k])
                 elif isinstance(model_inputs[k][0][0], float):
-                    if USE_CUDA:
-                        model_inputs[k] = torch.tensor(model_inputs[k], dtype=torch.float64, device=DEVICE)
-                    else:
-                        model_inputs[k] = torch.tensor(model_inputs[k], dtype=torch.float64)
-
+                    model_inputs[k] = torch.tensor(model_inputs[k], dtype=torch.float64)
         return model_inputs, sample_infos
 
 
