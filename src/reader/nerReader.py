@@ -149,6 +149,7 @@ class NERSet(Dataset):
 
         sample['token_loc_ids'] = [sample['token_loc_ids'][0]] + sample['token_loc_ids'] + [
             sample['token_loc_ids'][-1] + 1]  # for cls and seq
+        sample['token_loc_ids'] = sample['token_loc_ids'][:self.max_length]
 
         sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
                                                      max_length=self.max_length, truncation=True,
