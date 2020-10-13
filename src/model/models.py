@@ -33,14 +33,15 @@ class BertNER(nn.Module):
         batch_size = emission.shape[0]
 
         label_ids = [[LABEL2ID[l_name] for l_name in line] for line in label_names]
-        tag_acc = self.eval_segment_acc(emission, inputs['attention_mask'], label_ids)
+        # tag_acc = self.eval_segment_acc(emission, inputs['attention_mask'], label_ids)
 
         label_ids = torch.tensor(label_ids)
         if self.USE_CUDA:
             label_ids = label_ids.cuda(self.DEVICE)
         log_like_hood = self.crf(emission, label_ids, inputs['attention_mask'])
         log_like_hood /= batch_size
-        return -log_like_hood, tag_acc
+        # return -log_like_hood, tag_acc
+        return -log_like_hood
 
     def eval_segment_acc(self, emission, mask, label_ids):
         viterbi_decode = self.crf.viterbi_tags(emission, mask)

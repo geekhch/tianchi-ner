@@ -123,9 +123,10 @@ def main():
                             model_inputs[k] = v.cuda(DEVICE)
 
                 global_step += 1
-                loss, tag_acc = model(model_inputs)
+                # loss, tag_acc = model(model_inputs)
+                loss = model(model_inputs)
                 loss_.add(loss.item())
-                acc_.add(tag_acc)
+                # acc_.add(tag_acc)
 
                 optimizer.zero_grad()
                 loss.backward()
