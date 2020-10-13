@@ -230,6 +230,44 @@ class KFoldsWrapper:
 
         return trainset, devset
 
+import threading, queue
+class ThreadWrapper:
+    '''load to gpu in muti-threads: 异步将cpu数据加载到GPU'''
+    def __init__(self, dataloader, USE_CUDA, DEVICE):
+        self.USE_CUDA = USE_CUDA
+        self.DEVICE = DEVICE
+        self.q = queue.Queue()
+        self.semaphore = threading.Semaphore(4)
+        self.lock = threading.Lock()
+        self.dataloader = dataloader
+        self._gen()
+        self.batch_id = 0
+
+
+    def _gen(self):
+        for model_inputs, sample_infos in self.dataloader:
+            label_names = model_inputs.pop('label_names')
+            from reader.entityTypes import LABEL2ID
+            label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names]).cuda(self.DEVICE)
+            if self.USE_CUDA:
+                for k, v in model_inputs.items():
+                    if isinstance(v, torch.Tensor):
+                        model_inputs[k] = v.cuda(self.DEVICE)
+            batch = (model_inputs, label_ids, sample_infos)
+            self.semaphore.acquire()
+            self.lock.acquire()
+            self.q.put(batch)
+            self.lock.release()
+            self.semaphore.release()
+
+    def batch_generator(self):
+        while self.batch_id < len(self.dataloader):
+            self.lock.acquire()
+            ret = self.q.get()
+            self.lock.release()
+            self.batch_id += 1
+            yield ret
+
 
 
 
@@ -238,7 +276,15 @@ if __name__ == '__main__':
 
     args = get_parser()
 
-    dataset = NERSet(args, 'dev', True)
+
+    class Ver:
+        encoder_model = 'hfl/chinese-bert-wwm-ext'
+
+    dataset = NERSet(args, Ver, 'dev', True)
     dataloader = DataLoader(dataset, batch_size=3, collate_fn=NERSet.collate)
-    for batch in dataloader:
+    train_wrapper = ThreadWrapper(dataloader, True, torch.device('cuda',0))
+    total = 0
+    for batch in train_wrapper.batch_generator():
+        total += len(batch[2])
         print(batch)
+    print(total, len(dataset))
