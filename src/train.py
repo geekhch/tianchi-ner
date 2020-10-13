@@ -55,13 +55,15 @@ def evaluate(model, debug=False):
             for decode_labels, sample_info in zip(batch_decode_labels, sample_infos):
                 for lb in sample_info['gold']:
                     if not lb in decode_labels:
+                        if debug:
+                            print('FN:', lb)
                         fn += 1
                     else:
                         tp += 1
                 for lb in decode_labels:
                     if not lb in sample_info['gold']:
                         if debug:
-                            print(lb)
+                            print('FP:', lb)
                         fp += 1
                 if debug:
                     print(pred_tag_seq[0])
