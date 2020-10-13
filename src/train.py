@@ -78,7 +78,7 @@ def evaluate(model, devloader, debug=False):
 
 
 def main():
-    writer = SummaryWriter(join(args.log_dir, strftime()))
+    # writer = SummaryWriter(join(args.log_dir, strftime()))
     logger.info(f"output dir is: {OUTPUT_DIR}")
 
     set_seed(args.random_seed)
@@ -132,8 +132,8 @@ def main():
                 optimizer.step()
                 scheduler.step()
 
-                writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
-                writer.add_scalar('tag-acc', tag_acc, global_step=global_step)
+                # writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
+                # writer.add_scalar('tag-acc', tag_acc, global_step=global_step)
                 t.set_postfix(loss=loss_.get(), tag_acc=acc_.get())
                 t.update(1)
 
