@@ -1,3 +1,5 @@
+import time
+
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AlbertTokenizer, BertTokenizer
@@ -236,11 +238,10 @@ class ThreadWrapper:
     def __init__(self, dataloader, USE_CUDA, DEVICE):
         self.USE_CUDA = USE_CUDA
         self.DEVICE = DEVICE
-        self.q = queue.Queue()
-        self.semaphore = threading.Semaphore(4)
-        self.lock = threading.Lock()
+        self.q = queue.Queue(3)
         self.dataloader = dataloader
-        self._gen()
+        T = threading.Thread(target=self._gen)
+        T.start()
         self.batch_id = 0
 
 
@@ -254,17 +255,11 @@ class ThreadWrapper:
                     if isinstance(v, torch.Tensor):
                         model_inputs[k] = v.cuda(self.DEVICE)
             batch = (model_inputs, label_ids, sample_infos)
-            self.semaphore.acquire()
-            self.lock.acquire()
             self.q.put(batch)
-            self.lock.release()
-            self.semaphore.release()
 
     def batch_generator(self):
         while self.batch_id < len(self.dataloader):
-            self.lock.acquire()
             ret = self.q.get()
-            self.lock.release()
             self.batch_id += 1
             yield ret
 
