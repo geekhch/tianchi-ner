@@ -42,7 +42,7 @@ else:
 def evaluate(model, devloader, debug=False):
     model.eval()
     tp, fp, fn = 0, 0, 0
-    with tqdm(total=len(devloader)) as t:
+    with tqdm(total=len(devloader), ncols=50) as t:
         t.set_description(f'EVAL')
         for model_inputs, sample_infos in devloader:
             label_names = model_inputs.pop('label_names')
@@ -113,7 +113,7 @@ def main():
 
     for epoch in range(args.max_epoches):
         trainWrapper = ThreadWrapper(trainloader, USE_CUDA, DEVICE)
-        with tqdm(total=len(trainloader)) as t:
+        with tqdm(total=len(trainloader), ncols=50) as t:
             t.set_description(f'Epoch {epoch}')
             model.train()
             for model_inputs, label_ids, sample_infos in trainWrapper.batch_generator():
