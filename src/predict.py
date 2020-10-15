@@ -39,6 +39,7 @@ def main(mode='dev'):
     assert mode in ['dev', 'test1', 'test2']
     logger.info(f"load model from {args.model_dir}")
     model = torch.load(join(args.model_dir, 'model.pth'), map_location=DEVICE)
+    model.eval()
 
     # TODO 调试使用
     # from train import evaluate
