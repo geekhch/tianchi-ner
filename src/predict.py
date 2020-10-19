@@ -58,8 +58,12 @@ def main(mode='dev'):
                     for k, v in model_inputs.items():
                         if isinstance(v, torch.Tensor):
                             model_inputs[k] = v.cuda(DEVICE)
-                pred_tag_seq = model.predict(model_inputs)
-                batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
+                if args.topk:
+                    pred_tag_seq = model.predict_k(model_inputs)
+                    batch_decode_labels = ner.decode_topk_pred_seqs(pred_tag_seq, sample_infos)
+                else:
+                    pred_tag_seq = model.predict(model_inputs)
+                    batch_decode_labels = ner.decode_pred_seqs(pred_tag_seq, sample_infos)
 
                 for decode_labels, sample_info in zip(batch_decode_labels, sample_infos):
                     fid = sample_info['fid']
