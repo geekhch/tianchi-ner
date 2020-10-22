@@ -51,7 +51,7 @@ def main(mode='dev'):
         testset = NERSet(args, VERSION_CONFIG, mode, False)
         testloader = DataLoader(testset, batch_size=args.batch_size,  collate_fn=NERSet.collate)
         file2entities = {}
-        with tqdm(total=len(testloader)) as t:
+        with tqdm(total=len(testloader), ncols=50) as t:
             t.set_description(f'EVAL')
             for model_inputs, sample_infos in testloader:
                 if USE_CUDA:
@@ -91,4 +91,4 @@ def main(mode='dev'):
 
 
 if __name__ == '__main__':
-    main('test1')
+    main('dev')
