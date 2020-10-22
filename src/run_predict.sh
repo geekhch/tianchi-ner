@@ -61,7 +61,6 @@ export ENCODER=hfl/chinese-roberta-wwm-ext
 # --model_dir output/kfolds/9/step_2806
 
 # 0
-export ENCODER=hfl/chinese-roberta-wwm-ext
 python src/predict.py \
 --model_name_or_path $ENCODER \
 --pretrained_cache_dir ./pretrained \
@@ -139,5 +138,3 @@ python src/predict.py \
 --pretrained_cache_dir ./pretrained \
 --batch_size 4 \
 --model_dir output/kfolds_no_crf/10-17_12-04-21/step_4209
-
-
