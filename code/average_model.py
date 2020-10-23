@@ -38,6 +38,8 @@ def read_save(save_dir):
                 continue
             eval_info = open(join(root, 'evaluate.txt')).read()
             f1 = float(re.findall(string=eval_info, pattern=r'f1=([0-9]\.[0-9]*)')[0])
+            if f1 < 0.65:
+                continue  # 放弃垃圾模型权重
             model = torch.load(join(root, 'model.pth'), map_location=torch.device('cpu'))
             model_list.append(model)
             w_list.append(f1)
