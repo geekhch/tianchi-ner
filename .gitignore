@@ -8,3 +8,5 @@ output
 pretrained
 submit
 submit.*
+user_data
+prediction_result
