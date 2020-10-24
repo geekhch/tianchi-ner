@@ -5,8 +5,10 @@ from os.path import join
 
 from utils.args import VersionConfig
 from utils.utils import clear_dir
+import multiprocessing
 
 def merging(model_list: List[Module], w_list: List[float], cfg_list: List[VersionConfig]):
+    w_list = [w**2 for w in w_list]
     D = sum(w_list)
     w_list = [w/D for w in w_list]
     assert len(model_list) == len(w_list)
@@ -38,7 +40,7 @@ def read_save(save_dir):
                 continue
             eval_info = open(join(root, 'evaluate.txt')).read()
             f1 = float(re.findall(string=eval_info, pattern=r'f1=([0-9]\.[0-9]*)')[0])
-            if f1 < 0.65:
+            if f1 < 0.60:
                 continue  # 放弃垃圾模型权重
             model = torch.load(join(root, 'model.pth'), map_location=torch.device('cpu'))
             model_list.append(model)
@@ -58,6 +60,20 @@ def read_save(save_dir):
     torch.save(i_M, join(merge_out_dir, 'model.pth'))
     i_CFG.dump(merge_out_dir)
 
+def merge_kfold(k_root_dir):
+    p_list = []
+    for kdir in os.listdir(k_root_dir):
+        if not kdir.isdigit():
+            continue
+        p = join(k_root_dir, kdir)
+        print(f'evg: {p}')
+        processor = multiprocessing.Process(target=read_save, args=(p,))
+        processor.start()
+        p_list.append(processor)
+    for processor in p_list:
+        processor.join()
+    
 
 if __name__ == '__main__':
-    read_save('output/10-14_17-07-35')
+    # read_save('output/10-14_17-07-35')
+    merge_kfold('output/kfolds_nocrf_k40')

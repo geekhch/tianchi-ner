@@ -23,15 +23,15 @@ for folder in predict_version:
                 E = (e_type, e_start, e_end, e_text)
                 fid_entity_count[fid][E] = fid_entity_count[fid].get(E, 0)+1
 
-zgy = pickle.load(open('./user_data/merge_5e-5.pkl','rb'))
-for int_fid, e2c in zgy.items():
-    fid = f'{int_fid}.ann'
-    for E, C in e2c.items():
-        E = (E[0], str(E[1]), str(E[2]), E[3])
-        if not E in fid_entity_count[fid]:
-            fid_entity_count[fid][E] = C
-        else:
-            fid_entity_count[fid][E] += C
+# zgy = pickle.load(open('./user_data/merge_5e-5.pkl','rb'))
+# for int_fid, e2c in zgy.items():
+#     fid = f'{int_fid}.ann'
+#     for E, C in e2c.items():
+#         E = (E[0], str(E[1]), str(E[2]), E[3])
+#         if not E in fid_entity_count[fid]:
+#             fid_entity_count[fid][E] = C
+#         else:
+#             fid_entity_count[fid][E] += C
 
 def clear_dir(dir):
     files = [os.path.join(dir, f) for f in os.listdir(dir)]
@@ -39,7 +39,7 @@ def clear_dir(dir):
         os.remove(f)
 
 
-MIN_COUNT = 23
+MIN_COUNT = 6
 print(f"条件：count大于等于{MIN_COUNT}")
 
 if not os.path.exists('./user_data/result'):
