@@ -78,6 +78,13 @@ def main(mode='dev'):
             clear_dir(save_dir)
         else:
             os.mkdir(save_dir)
+        
+        # 防止复赛空文件
+        if 1500 in file2entities:
+            for i in range(1500, 1997):
+                with open(join(save_dir, f'{i}.ann'), 'w', encoding='utf8') as f:
+                    f.write('')
+
         for fid, E in file2entities.items():
             with open(join(save_dir, f'{fid}.ann'), 'w', encoding='utf8') as f:
                 firstline = True

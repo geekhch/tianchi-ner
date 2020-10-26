@@ -1,8 +1,8 @@
 # Base Images
 ## 指定了版
-FROM registry.cn-shenzhen.aliyuncs.com/tianchi-tcm/tianchi-sz:nocrf
+FROM tianchi:nocrf-userdata
 
-# RUN mkdir /tianchi
+RUN mkdir -p /tianchi/user_data
 
 ## 把当前文件夹里的文件构建到镜像的根目录下
 
@@ -13,4 +13,4 @@ COPY . /tianchi/
 WORKDIR /tianchi/
 
 ## 镜像启动后统一执行 sh run.sh
-CMD ["sh", "run.sh"]q
+CMD ["sh", "run.sh"]
