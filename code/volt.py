@@ -46,6 +46,12 @@ if not os.path.exists('./user_data/result'):
     os.mkdir('./user_data/result')
 else:
     clear_dir('./user_data/result')
+
+# 防止复赛空文件
+for i in range(1500, 1997):
+    with open(f'./user_data/result/{i}.ann', 'w', encoding='utf8') as f:
+        f.write('')
+
 num_entity = 0
 for fid, entity_count in fid_entity_count.items():
     TID = 1
@@ -58,9 +64,6 @@ for fid, entity_count in fid_entity_count.items():
             e_type, e_start, e_end, e_text = E
             f.write(f'T{TID}\t{e_type} {e_start} {e_end}\t{e_text}')
             TID += 1
-
-             z并不能像czxc
-             SLKJHGF
             num_entity += 1
 
-print(f"count >= {MIN_COUNT}时平均每个样本有{num_entity/(len(fid_entity_count)+1e-6)}个样本")
+print(f"count >= {MIN_COUNT}时平均每个样本有{num_entity/len(fid_entity_count)}个样本")

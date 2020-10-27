@@ -63,8 +63,8 @@ def read_save(save_dir):
 def merge_kfold(k_root_dir):
     p_list = []
     for kdir in os.listdir(k_root_dir):
-        if not kdir.isdigit():
-            continue
+        # if not kdir.isdigit():
+        #     continue
         p = join(k_root_dir, kdir)
         print(f'evg: {p}')
         processor = multiprocessing.Process(target=read_save, args=(p,))
@@ -76,4 +76,4 @@ def merge_kfold(k_root_dir):
 
 if __name__ == '__main__':
     # read_save('output/10-14_17-07-35')
-    merge_kfold('output/kfolds_nocrf_k40')
+    merge_kfold('output/kfolds_no_crf')
