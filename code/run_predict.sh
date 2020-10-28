@@ -66,94 +66,16 @@ export ENCODER=hfl/chinese-roberta-wwm-ext
 # --batch_size 8 \
 # --model_dir user_data/kfolds/step_2806
 
-# 0
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_2796
-
-
-# 1
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_2834
-
-
-# 2
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_4188
-
-
-# 3
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_4209
-
-
-# 4
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_4242
-
-
-# 5
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_4251
-
-
-# 6
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_5508
-
-
-# 7
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_7065
-
-
-# 8
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_7085
-
-
-# 9
-python code/predict.py \
---model_name_or_path $ENCODER \
---data_dir tmp_data \
---pretrained_cache_dir ./user_data/pretrained \
---batch_size 4 \
---model_dir user_data/kfolds_no_crf/step_7100
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_03-46-38/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_08-45-55/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-16_21-10-31/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_00-29-10/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_07-05-49/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_10-24-00/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_05-25-53/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_12-04-21/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-17_02-06-04/merge_model
+python code/predict.py --model_name_or_path $ENCODER --data_dir tmp_data --pretrained_cache_dir ./user_data/pretrained --batch_size 4 --model_dir user_data/kfolds_no_crf_avged/10-16_22-50-47/merge_model
 
 python code/volt.py
 

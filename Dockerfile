@@ -3,6 +3,7 @@
 # Base Images
 ## 指定了版
 FROM registry.cn-shenzhen.aliyuncs.com/tianchi-tcm/tianchi-sz:model
+# FROM registry.cn-shenzhen.aliyuncs.com/tianchi-tcm/tianchi-sz:base
 
 # RUN mkdir -p /tianchi/user_data
 
@@ -14,8 +15,6 @@ COPY . /tianchi/
 
 ## 指定默认工作目录为根目录（需要把run.sh和生成的结果文件都放在该文件夹下，提交后才能运行）
 WORKDIR /tianchi/
-
-RUN pip install loguru tqdm tensorboardx allennlp 
 
 ## 镜像启动后统一执行 sh run.sh
 CMD ["sh", "run.sh"]
