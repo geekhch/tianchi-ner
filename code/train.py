@@ -5,7 +5,6 @@ import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch import nn
-from tensorboardX import SummaryWriter
 from loguru import logger
 from tqdm import tqdm
 from transformers import set_seed
@@ -25,7 +24,7 @@ VERSION_CONFIG = VersionConfig(
     use_crf=args.use_crf,
     k_folds=args.k_folds
 )
-GPU_IDS = [args.gpu_id]
+GPU_IDS = args.gpu_id
 if args.k_folds:
     OUTPUT_DIR = join(args.output_dir, args.k_folds.split('/')[0])
 else:
@@ -37,7 +36,7 @@ if args.no_cuda or not torch.cuda.is_available():
     USE_CUDA = False
 else:
     USE_CUDA = True
-    DEVICE = torch.device('cuda', GPU_IDS[0])
+    DEVICE = torch.device('cuda', GPU_IDS)
     torch.cuda.set_device(DEVICE)
     logger.info('use gpu!')
 
@@ -82,9 +81,7 @@ def evaluate(model, devloader, debug=False):
 
 
 def main():
-    writer = SummaryWriter(join(args.log_dir, strftime()))
     logger.info(f"output dir is: {OUTPUT_DIR}")
-
     set_seed(args.random_seed)
     model = BertNER(args, VERSION_CONFIG)
 
@@ -137,7 +134,6 @@ def main():
                 optimizer.step()
                 scheduler.step()
 
-                writer.add_scalar('crf-loss', loss.item(), global_step=global_step)
                 t.set_postfix(loss=loss_.get())
                 t.update(1)
 
