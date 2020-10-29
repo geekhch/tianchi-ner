@@ -39,7 +39,7 @@ def clear_dir(dir):
         os.remove(f)
 
 
-MIN_COUNT = 6
+MIN_COUNT = 7
 print(f"条件：count大于等于{MIN_COUNT}")
 
 if not os.path.exists('./user_data/result'):
