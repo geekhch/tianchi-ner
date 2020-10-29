@@ -170,33 +170,33 @@ class NERSet(Dataset):
                                                      return_attention_mask=True)
         loss_mask = encoding_0['attention_mask']
         max_textb_len = self.max_length-sum(loss_mask)-1
-        position_ids = torch.arange(sum(loss_mask), dtype=torch.long)
-        encoding_1 = self.tokenizer.encode_plus(sample['text'], text_pair=text_b_word_head[:max_textb_len],
+        encoding_1 = self.tokenizer.encode_plus(sample['text'], text_pair=''.join(text_b_word_head[:max_textb_len]),
                                                 padding='max_length',
                                                 max_length=self.max_length, truncation=True,
                                                 return_attention_mask=True)
 
-        encoding_2 = self.tokenizer.encode_plus(sample['text'], text_pair=text_b_word_head[:max_textb_len], 
+        encoding_2 = self.tokenizer.encode_plus(sample['text'], text_pair=''.join(text_b_word_head[:max_textb_len]),
                                                 padding='max_length',
                                                 max_length=self.max_length, truncation=True,
                                                 return_attention_mask=True)
         attention_mask = encoding_1['attention_mask']
         len_a, len_b = sum(loss_mask), sum(attention_mask) - sum(loss_mask)
         token_type_ids = encoding_1['token_type_ids']
-        position_ids = torch.tensor([i for i in range(len_a)] + [len_a]*len_b, dtype=torch.int64)
+        position_ids = [i for i in range(len_a)] + [len_a]*(self.max_length-len_a)
 
         assert len(sample['token_loc_ids']) == sum(loss_mask)
 
-        if self.FOR_TRAIN:
-            sample_encoding = {
-                'label_names': ['[CLS]'] + labels + ['[SEP]'] + ['[PAD]'] * (self.max_length - label_length),
+        sample_encoding = {
                 'input_ids_1': encoding_1['input_ids'],
                 'input_ids_2': encoding_2['input_ids'],
                 'loss_mask': loss_mask,
                 'attention_mask': attention_mask,
                 'token_type_ids': token_type_ids,
                 'position_ids': position_ids
-            }
+        }
+
+        if self.FOR_TRAIN:
+            sample_encoding['label_names'] = ['[CLS]'] + labels + ['[SEP]'] + ['[PAD]'] * (self.max_length - label_length)
 
         return sample_encoding, sample
 

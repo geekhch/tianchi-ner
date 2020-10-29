@@ -1,8 +1,8 @@
 import torch
 from torch import nn
+from allennlp.modules import ConditionalRandomField
 from transformers import AutoModel, AutoModelWithLMHead
 from reader.entityTypes import *
-from allennlp.modules import ConditionalRandomField
 
 
 class BertNER(nn.Module):
@@ -10,7 +10,7 @@ class BertNER(nn.Module):
         super(BertNER, self).__init__()
 
         self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
-        self.embeddings = self.encoder.embeddings
+        self.embeddings = self.encoder.get_input_embeddings()
         self.hidden_size = self.encoder.config.hidden_size
 
         self.emission_ffn = nn.Linear(self.hidden_size, len(ID2LABEL))
@@ -24,22 +24,26 @@ class BertNER(nn.Module):
     def forward(self, encoder_inputs: dict, label_ids: torch.Tensor):
         input_ids_1 = encoder_inputs['input_ids_1']
         input_ids_2 = encoder_inputs['input_ids_2']
+        
         loss_mask = encoder_inputs['loss_mask']
         attention_mask = encoder_inputs['attention_mask']
         token_type_ids = encoder_inputs['token_type_ids']
         position_ids = encoder_inputs['position_ids']
-        embed_1 = self.embeddings(input_ids=input_ids_1, position_ids=position_ids, token_type_ids=token_type_ids)
-        embed_2 = self.embeddings
+        
+        embed_1 = self.embeddings(input_ids_1)
+        embed_2 = self.embeddings(input_ids_2)
+        embed = (embed_1 + embed_2) / 2
+
         
         
-        outputs = self.encoder(**encoder_inputs)
+        outputs = self.encoder(inputs_embeds=embed, attention_mask=attention_mask, token_type_ids=token_type_ids, position_ids=position_ids)
         # print(outputs[0].shape)
         encoded, _ = outputs
 
         emission = self.emission_ffn(encoded)
         batch_size = emission.shape[0]
 
-        log_like_hood = self.crf(emission, label_ids, encoder_inputs['attention_mask'])
+        log_like_hood = self.crf(emission, label_ids, loss_mask)
         log_like_hood /= batch_size
         # return -log_like_hood, tag_acc
         return -log_like_hood
@@ -54,13 +58,27 @@ class BertNER(nn.Module):
                 tp += tag_id == label_ids[i][j]
         return tp / tot
 
-    def predict(self, inputs: dict):
-        if 'label_names' in inputs:
-            inputs.pop('label_names')
-        outputs = self.encoder(**inputs)
+    def predict(self, encoder_inputs: dict):
+        if 'label_names' in encoder_inputs:
+            encoder_inputs.pop('label_names')
+        
+        input_ids_1 = encoder_inputs['input_ids_1']
+        input_ids_2 = encoder_inputs['input_ids_2']
+        
+        loss_mask = encoder_inputs['loss_mask']
+        attention_mask = encoder_inputs['attention_mask']
+        token_type_ids = encoder_inputs['token_type_ids']
+        position_ids = encoder_inputs['position_ids']
+        
+        embed_1 = self.embeddings(input_ids_1)
+        embed_2 = self.embeddings(input_ids_2)
+        embed = (embed_1 + embed_2) / 2
+
+
+        outputs = self.encoder(inputs_embeds=embed, attention_mask=attention_mask, token_type_ids=token_type_ids, position_ids=position_ids)
         encoded, _ = outputs
         emission = self.emission_ffn(encoded)
-        viterbi_decode = self.crf.viterbi_tags(emission, inputs['attention_mask'])
+        viterbi_decode = self.crf.viterbi_tags(emission, loss_mask)
         viterbi_path = [d[0] for d in viterbi_decode]
         tag_paths = []
         for i in range(emission.shape[0]):

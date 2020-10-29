@@ -15,12 +15,13 @@
 
 # 不使用crf
 # export ENCODER=hfl/chinese-bert-wwm-ext
-export ENCODER=hfl/chinese-roberta-wwm-ext
+# export ENCODER=hfl/chinese-roberta-wwm-ext
+export ENCODER=voidful/albert_chinese_small
 # export ENCODER=hfl/chinese-roberta-wwm-ext-large
 export OUTPUT_DIR=./output
 # # export ENCODER=allenyummy/chinese-bert-wwm-ehr-ner-sl
 
-python src/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./pretrained --batch_size 8 --lr 5e-5 --max_epoches 7 --max_steps 20000 --warmup_steps 100 --num_workers 1 --gpu_id 1
+python code/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./user_data/pretrained --batch_size 8 --lr 5e-5 --max_epoches 7 --max_steps 20000 --warmup_steps 100 --num_workers 2 --gpu_id 0
 
 # KFolds 规则
 # python src/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./pretrained --batch_size 8 --lr 5e-5 --max_epoches 5 --max_steps 20000 --warmup_steps 100 --num_workers 2 --gpu_id 1 --k_folds 0/40
