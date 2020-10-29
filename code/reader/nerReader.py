@@ -1,5 +1,6 @@
+import sys
+sys.path.append('code/')
 import time
-
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AlbertTokenizer, BertTokenizer
@@ -7,6 +8,10 @@ import os, re
 from utils.utils import *
 from loguru import logger
 from typing import List, Tuple
+import jieba
+
+
+jieba.load_userdict('code/reader/traindict.txt')
 
 
 class NERSet(Dataset):
@@ -149,19 +154,49 @@ class NERSet(Dataset):
         else:
             sample = self.samples[i].copy()
 
+        text_b_word_head, text_b_word_tail = [], []
+
+        for w in jieba.cut_for_search(sample['text'].replace(' ', '')):
+            if len(w) > 1 and not re.match(r'.*[0-9].*', w):
+                text_b_word_head.append(w[0])
+                text_b_word_tail.append(w[-1])
+
         sample['token_loc_ids'] = [sample['token_loc_ids'][0]] + sample['token_loc_ids'] + [
             sample['token_loc_ids'][-1] + 1]  # for cls and seq
         sample['token_loc_ids'] = sample['token_loc_ids'][:self.max_length]
 
-        sample_encoding = self.tokenizer.encode_plus(sample['text'], padding='max_length',
+        encoding_0 = self.tokenizer.encode_plus(sample['text'], padding='max_length',
                                                      max_length=self.max_length, truncation=True,
                                                      return_attention_mask=True)
+        loss_mask = encoding_0['attention_mask']
+        max_textb_len = self.max_length-sum(loss_mask)-1
+        position_ids = torch.arange(sum(loss_mask), dtype=torch.long)
+        encoding_1 = self.tokenizer.encode_plus(sample['text'], text_pair=text_b_word_head[:max_textb_len],
+                                                padding='max_length',
+                                                max_length=self.max_length, truncation=True,
+                                                return_attention_mask=True)
 
-        assert len(sample['token_loc_ids']) == sum(sample_encoding['attention_mask'])
+        encoding_2 = self.tokenizer.encode_plus(sample['text'], text_pair=text_b_word_head[:max_textb_len], 
+                                                padding='max_length',
+                                                max_length=self.max_length, truncation=True,
+                                                return_attention_mask=True)
+        attention_mask = encoding_1['attention_mask']
+        len_a, len_b = sum(loss_mask), sum(attention_mask) - sum(loss_mask)
+        token_type_ids = encoding_1['token_type_ids']
+        position_ids = torch.tensor([i for i in range(len_a)] + [len_a]*len_b, dtype=torch.int64)
+
+        assert len(sample['token_loc_ids']) == sum(loss_mask)
 
         if self.FOR_TRAIN:
-            sample_encoding['label_names'] = ['[CLS]'] + labels + ['[SEP]'] \
-                                             + ['[PAD]'] * (self.max_length - label_length)
+            sample_encoding = {
+                'label_names': ['[CLS]'] + labels + ['[SEP]'] + ['[PAD]'] * (self.max_length - label_length),
+                'input_ids_1': encoding_1['input_ids'],
+                'input_ids_2': encoding_2['input_ids'],
+                'loss_mask': loss_mask,
+                'attention_mask': attention_mask,
+                'token_type_ids': token_type_ids,
+                'position_ids': position_ids
+            }
 
         return sample_encoding, sample
 
@@ -277,9 +312,5 @@ if __name__ == '__main__':
 
     dataset = NERSet(args, Ver, 'dev', True)
     dataloader = DataLoader(dataset, batch_size=3, collate_fn=NERSet.collate)
-    train_wrapper = ThreadWrapper(dataloader, True, torch.device('cuda',0))
-    total = 0
-    for batch in train_wrapper.batch_generator():
-        total += len(batch[2])
+    for batch in dataloader:
         print(batch)
-    print(total, len(dataset))

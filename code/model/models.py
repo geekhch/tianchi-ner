@@ -10,6 +10,7 @@ class BertNER(nn.Module):
         super(BertNER, self).__init__()
 
         self.encoder = AutoModel.from_pretrained(args.model_name_or_path, cache_dir=args.pretrained_cache_dir)
+        self.embeddings = self.encoder.embeddings
         self.hidden_size = self.encoder.config.hidden_size
 
         self.emission_ffn = nn.Linear(self.hidden_size, len(ID2LABEL))
@@ -21,6 +22,16 @@ class BertNER(nn.Module):
             torch.nn.init.zeros_(self.crf.transitions)
 
     def forward(self, encoder_inputs: dict, label_ids: torch.Tensor):
+        input_ids_1 = encoder_inputs['input_ids_1']
+        input_ids_2 = encoder_inputs['input_ids_2']
+        loss_mask = encoder_inputs['loss_mask']
+        attention_mask = encoder_inputs['attention_mask']
+        token_type_ids = encoder_inputs['token_type_ids']
+        position_ids = encoder_inputs['position_ids']
+        embed_1 = self.embeddings(input_ids=input_ids_1, position_ids=position_ids, token_type_ids=token_type_ids)
+        embed_2 = self.embeddings
+        
+        
         outputs = self.encoder(**encoder_inputs)
         # print(outputs[0].shape)
         encoded, _ = outputs
