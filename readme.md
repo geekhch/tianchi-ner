@@ -4,11 +4,12 @@
 # 2 依赖包版本
 > * PYTHON：3.6.5
 > * PYTORCH：1.6.0
-> * CUDA：11.0
-> * CUDNN：10.2
 
 # 3 提交说明
 ## 此算法使用了4组10折交叉验证进行模型集成，其中2组基于bert-chinese-base预训练模型进行微调。由于上传限制，仅上传了基于bert-chinese-base模型的预测结果，存放于merge_5e-5.pkl文件中。通过运行.sh文件，此pkl文件可以结合已上传的20个RoBERTa模型进行预测和结果复现。
 
 # 4 运行说明
 项目根目录下运行`bash code/run_predict.sh`
+
+# 其他
+训练和预测使用同一个reader，有利于代码修改。
