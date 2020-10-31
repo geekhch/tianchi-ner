@@ -1,5 +1,6 @@
 torch==1.6.0
 allennlp
+transformers==3.0.2
 loguru
 tensorboardX
 tqdm

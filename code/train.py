@@ -143,19 +143,20 @@ def main():
 
             # eval and save model every epoch
             p, r, f1 = evaluate(swa_model.module, devloader)
-            logger.info(f"after {global_step} steps,  percision={p}, recall={r}, f1={f1}\n")
+            logger.info(f"after {epoch+1} epoches,  percision={p}, recall={r}, f1={f1}\n")
             
-            save_dir = join(OUTPUT_DIR, f'epoch_{epoch}')
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
+            if epoch >= args.max_epoches - 2:
+                save_dir = join(OUTPUT_DIR, f'epoch_{epoch}')
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
 
-            with open(join(save_dir, 'evaluate.txt'), 'w') as f:
-                f.write(f'precision={p}, recall={r}, f1={f1} dev_size={len(devset)}\n')
-                f.write(f'batch_size={args.batch_size}, epoch={epoch}, k_folds={args.k_folds}')
-            torch.save(swa_model.module, join(save_dir, 'model.pth'))
-            VERSION_CONFIG.dump(save_dir)
-            with open(f'{OUTPUT_DIR}/args.txt', 'w') as f:
-                f.write(str(args))
+                with open(join(save_dir, 'evaluate.txt'), 'w') as f:
+                    f.write(f'precision={p}, recall={r}, f1={f1} dev_size={len(devset)}\n')
+                    f.write(f'batch_size={args.batch_size}, epoch={epoch}, k_folds={args.k_folds}')
+                torch.save(swa_model.module, join(save_dir, 'model.pth'))
+                VERSION_CONFIG.dump(save_dir)
+                with open(f'{OUTPUT_DIR}/args.txt', 'w') as f:
+                    f.write(str(args))
                     
 
 
