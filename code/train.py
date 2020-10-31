@@ -2,7 +2,7 @@ import os
 from os.path import join
 
 import torch
-from torch.optim import Adam
+from torch.optim import Adam, swa_utils
 from torch.utils.data import DataLoader
 from torch import nn
 from loguru import logger
@@ -109,6 +109,8 @@ def main():
 
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
 
+    swa_model = swa_utils.AveragedModel(model)
+
     global_step = 0
     loss_ = CountSmooth(100)
 
@@ -137,8 +139,9 @@ def main():
                 t.set_postfix(loss=loss_.get())
                 t.update(1)
 
+            swa_model.update_parameters(model)
             # eval and save model every epoch
-            p, r, f1 = evaluate(model, devloader)
+            p, r, f1 = evaluate(swa_model.module, devloader)
             logger.info(f"after {global_step} steps,  percision={p}, recall={r}, f1={f1}\n")
             
             save_dir = join(OUTPUT_DIR, f'epoch_{epoch}')
@@ -148,7 +151,7 @@ def main():
             with open(join(save_dir, 'evaluate.txt'), 'w') as f:
                 f.write(f'precision={p}, recall={r}, f1={f1} dev_size={len(devset)}\n')
                 f.write(f'batch_size={args.batch_size}, epoch={epoch}, k_folds={args.k_folds}')
-            torch.save(model, join(save_dir, 'model.pth'))
+            torch.save(swa_model.module, join(save_dir, 'model.pth'))
             VERSION_CONFIG.dump(save_dir)
             with open(f'{OUTPUT_DIR}/args.txt', 'w') as f:
                 f.write(str(args))
