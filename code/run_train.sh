@@ -21,7 +21,7 @@ export ENCODER=hfl/chinese-roberta-wwm-ext
 export OUTPUT_DIR=./output
 # # export ENCODER=allenyummy/chinese-bert-wwm-ehr-ner-sl
 
-python code/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./user_data/pretrained --batch_size 8 --lr 5e-5 --max_epoches 20 --max_steps 20000 --warmup_steps 100 --num_workers 2 --gpu_id 0
+python code/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./user_data/pretrained --batch_size 8 --lr 5e-5 --max_epoches 20 --max_steps 20000 --warmup_steps 100 --num_workers 2 --gpu_id 1
 
 # KFolds 规则
 # python src/train.py --model_name_or_path $ENCODER --output_dir $OUTPUT_DIR --pretrained_cache_dir ./pretrained --batch_size 8 --lr 5e-5 --max_epoches 5 --max_steps 20000 --warmup_steps 100 --num_workers 2 --gpu_id 1 --k_folds 0/40
