@@ -6,3 +6,4 @@ pretrained
 **/predict_dev
 result.zip
 user_data/result
+tmp_data

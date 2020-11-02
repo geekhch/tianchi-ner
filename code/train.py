@@ -106,8 +106,9 @@ def main():
     optimizer = Adam([{'params': model.encoder.parameters()},
                       {'params': model.emission_ffn.parameters()},
                       {'params': model.crf.parameters(), "lr": 1e-2}], lr=args.learning_rate)
-
     scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
+
+    
 
     swa_model = swa_utils.AveragedModel(model, DEVICE)
 
