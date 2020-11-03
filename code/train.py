@@ -11,7 +11,7 @@ from transformers import set_seed
 
 from reader.entityTypes import LABEL2ID
 from utils.args import get_parser, VersionConfig
-from utils.optim import get_linear_schedule_with_warmup
+from utils.optim import get_linear_schedule_with_warmup, get_cycle_schedule
 from utils.utils import strftime, CountSmooth
 from model.models import BertNER
 from reader.nerReader import NERSet, KFoldsWrapper, ThreadWrapper
@@ -104,9 +104,8 @@ def main():
                              shuffle=True, collate_fn=NERSet.collate)
 
     optimizer = Adam([{'params': model.encoder.parameters()},
-                      {'params': model.emission_ffn.parameters()},
-                      {'params': model.crf.parameters(), "lr": 1e-2}], lr=args.learning_rate)
-    scheduler = get_linear_schedule_with_warmup(optimizer, args.warmup_steps, args.max_steps)
+                      {'params': model.emission_ffn.parameters()}], lr=args.learning_rate)
+    scheduler = get_cycle_schedule(optimizer, 3)
 
     
 
@@ -117,17 +116,10 @@ def main():
 
     for epoch in range(args.max_epoches):
         trainWrapper = ThreadWrapper(trainloader, USE_CUDA, DEVICE)
-        with tqdm(total=len(trainloader), ncols=50) as t:
+        with tqdm(total=len(trainloader), ncols=100) as t:
             t.set_description(f'Epoch {epoch}')
             model.train()
             for model_inputs, label_ids, sample_infos in trainWrapper.batch_generator():
-                # label_names = model_inputs.pop('label_names')
-                # label_ids = torch.tensor([[LABEL2ID[l_name] for l_name in line] for line in label_names]).cuda(DEVICE)
-                # if USE_CUDA:
-                #     for k, v in model_inputs.items():
-                #         if isinstance(v, torch.Tensor):
-                #             model_inputs[k] = v.cuda(DEVICE)
-
                 global_step += 1
                 optimizer.zero_grad()
                 loss = model(model_inputs, label_ids)
@@ -135,18 +127,23 @@ def main():
 
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
 
                 t.set_postfix(loss=loss_.get())
                 t.update(1)
 
-            swa_model.update_parameters(model)
+            scheduler.step()
+
+            if epoch % 3 == 2:
+                swa_model.update_parameters(model)
+                p, r, f1 = evaluate(swa_model.module, devloader)
+                logger.info(f"swa-model: after {epoch+1} epoches,  percision={p}, recall={r}, f1={f1}\n")
+            
 
             # eval and save model every epoch
             p, r, f1 = evaluate(swa_model.module, devloader)
             logger.info(f"after {epoch+1} epoches,  percision={p}, recall={r}, f1={f1}\n")
             
-            if epoch >= args.max_epoches - 2:
+            if epoch >= args.max_epoches - 1:
                 save_dir = join(OUTPUT_DIR, f'epoch_{epoch}')
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
